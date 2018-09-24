@@ -4,7 +4,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/fynduck/filesUpload.svg?style=flat-square)](https://packagist.org/packages/fynduck/filesUpload)
 
 ## Install
-`composer require fynduck/filesUpload`
+`composer require fynduck/files-upload`
 
 ## Usage
 Write a few lines about the usage of this package.
