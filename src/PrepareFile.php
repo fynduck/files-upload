@@ -58,7 +58,7 @@ class PrepareFile
      * @param string $diskName
      * @return string
      */
-    private function generateNameFile($file, $folder, $title = '', $extension = null, $diskName = 'public')
+    private static function generateNameFile($file, $folder, $title = '', $extension = null, $diskName = 'public')
     {
         $fileName = str_slug($title, '_');
 
@@ -105,7 +105,7 @@ class PrepareFile
      * @param string $diskName
      * @return string
      */
-    public function checkFolder($folder, $diskName = 'public')
+    public static function checkFolder($folder, $diskName = 'public')
     {
         if (!Storage::disk($diskName)->exists($folder))
             Storage::disk($diskName)->makeDirectory($folder);
