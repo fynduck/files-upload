@@ -126,6 +126,6 @@ class ManageImage
         /**
          * Save resize
          */
-        $image->save($folderSize . '/' . $imageName);
+        $image->save(storage_path('app/public/' . $folder . '/' . $folderSize . '/' . $imageName));
     }
 }
