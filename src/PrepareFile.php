@@ -25,7 +25,7 @@ class PrepareFile
      * @param string $diskName
      * @return mixed|string
      */
-    public function uploadFile($folder, $typeFile, $file, $old_file, $title, $imageSizes = [], $ext = null, $do = 'crop', $diskName = 'public')
+    public static function uploadFile($folder, $typeFile, $file, $old_file, $title, $imageSizes = [], $ext = null, $do = 'crop', $diskName = 'public')
     {
         $fileName = '';
         if ($old_file)
@@ -33,8 +33,8 @@ class PrepareFile
 
         if ($file) {
             $folder = trim($folder, '/');
-            $fileName = $this->generateNameFile($file, $folder, $title, $ext, $diskName);
-            $this->checkFolder($folder, $diskName);
+            $fileName = self::generateNameFile($file, $folder, $title, $ext, $diskName);
+            self::checkFolder($folder, $diskName);
 
             switch ($typeFile) {
                 case 'image':
@@ -119,7 +119,7 @@ class PrepareFile
      * @param $diskName
      * @return bool
      */
-    public function deleteImages($folder, $name, $sizes = [], $diskName = 'public')
+    public static function deleteImages($folder, $name, $sizes = [], $diskName = 'public')
     {
         /**
          * remove sizes images
