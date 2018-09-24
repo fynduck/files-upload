@@ -1,0 +1,41 @@
+{
+    "name": "fynduck/filesUpload",
+    "description": "A description for filesUpload.",
+    "type": "package",
+    "license": "MIT",
+    "keywords": [
+        "laravel"
+    ],
+    "authors": [
+        {
+            "name": "fynduck",
+            "email": "stason.k12@gmail.com"
+        }
+    ],
+    "require": {
+        "illuminate/support": "5.6.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Fynduck\\FilesUpload\\": "./src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Fynduck\\FilesUpload\\Test\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Fynduck\\FilesUpload\\FilesUploadServiceProvider"
+            ]
+        }
+    },
+    "require-dev": {
+        "orchestra/testbench": "^3.6"
+    }
+}

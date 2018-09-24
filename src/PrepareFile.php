@@ -1,0 +1,138 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: admin
+ * Date: 9/7/18
+ * Time: 3:51 PM
+ */
+
+namespace Fynduck\FilesUpload;
+
+use Illuminate\Support\Facades\Storage;
+
+class PrepareFile
+{
+    /**
+     * Upload image
+     * @param $folder
+     * @param $typeFile
+     * @param $file
+     * @param $old_file
+     * @param $title
+     * @param array $imageSizes
+     * @param null $ext
+     * @param string $do
+     * @param string $diskName
+     * @return mixed|string
+     */
+    public function uploadFile($folder, $typeFile, $file, $old_file, $title, $imageSizes = [], $ext = null, $do = 'crop', $diskName = 'public')
+    {
+        $fileName = '';
+        if ($old_file)
+            $fileName = $old_file;
+
+        if ($file) {
+            $folder = trim($folder, '/');
+            $fileName = $this->generateNameFile($file, $folder, $title, $ext, $diskName);
+            $this->checkFolder($folder, $diskName);
+
+            switch ($typeFile) {
+                case 'image':
+                    (new ManageImage())->saveImage($file, $folder, $fileName, $imageSizes, $old_file, $do, $diskName);
+                    break;
+                case 'file':
+                    break;
+            }
+
+        }
+
+        return $fileName;
+    }
+
+    /**
+     * Generate file name for save
+     * @param $file
+     * @param $folder
+     * @param string $title
+     * @param null $extension
+     * @param string $diskName
+     * @return string
+     */
+    private function generateNameFile($file, $folder, $title = '', $extension = null, $diskName = 'public')
+    {
+        $fileName = str_slug($title, '_');
+
+        /**
+         * extract extension if not defined
+         */
+        if (is_null($extension))
+            $extension = $file->getClientOriginalExtension();
+
+        /**
+         * generate name to file if not defined
+         */
+        if (is_null($title)) {
+            $origName = '.' . $file->getClientOriginalName();
+
+            /**
+             * remove extension
+             */
+            $arrayName = explode('.', $origName);
+            array_pop($arrayName);
+
+            $fileName = str_slug(implode('_', $arrayName), '_');
+        }
+
+        /**
+         * replace prohibited symbols
+         */
+        $pattern = array('/\s+/', '/,/');
+        $replace = array('_', '_');
+        $fileName = preg_replace($pattern, $replace, $fileName);
+
+        /**
+         * Verify if exist file of this name, if exist change file name
+         */
+        if (Storage::disk($diskName)->exists($folder . '/' . $fileName . '.' . $extension))
+            $fileName = $fileName . '_' . str_random(8);
+
+        return $fileName . '.' . $extension;
+    }
+
+    /**
+     * Check isset path if not create
+     * @param $folder
+     * @param string $diskName
+     * @return string
+     */
+    public function checkFolder($folder, $diskName = 'public')
+    {
+        if (!Storage::disk($diskName)->exists($folder))
+            Storage::disk($diskName)->makeDirectory($folder);
+    }
+
+    /**
+     * Delete original image and sizes folders
+     * @param $folder
+     * @param $sizes
+     * @param $name
+     * @param $diskName
+     * @return bool
+     */
+    public function deleteImages($folder, $name, $sizes = [], $diskName = 'public')
+    {
+        /**
+         * remove sizes images
+         */
+        if($sizes) {
+            foreach ($sizes as $folderSize => $size)
+                Storage::disk($diskName)->delete($folder . '/' . $folderSize . '/' . $name);
+        }
+        /**
+         * remove original image
+         */
+        Storage::disk($diskName)->delete($folder . '/' . $name);
+
+        return true;
+    }
+}
