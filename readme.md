@@ -1,7 +1,7 @@
-# filesUpload
+# FilesUpload
 
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
-[![Total Downloads](https://img.shields.io/packagist/dt/fynduck/filesUpload.svg?style=flat-square)](https://packagist.org/packages/fynduck/filesUpload)
+[![Total Downloads](https://img.shields.io/packagist/dt/fynduck/files-upload.svg?style=flat-square)](https://packagist.org/packages/fynduck/files-upload)
 
 ## Install
 `composer require fynduck/files-upload`
