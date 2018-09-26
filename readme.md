@@ -7,8 +7,10 @@
 `composer require fynduck/files-upload`
 
 ## Usage
+```
 $nameFile = PrepareFile::uploadFile('folder_save', 'type:_image_or_file', 'file_for_save', 'name_old_file', 'name_save_file', '['xs' => ['width' => 10, 'height' => 10]](optional)', 'save_format_ex:_png(optional)');
-`function return name saved file
+
+`function return name saved file`
 
 ## Testing
 Run the tests with:
