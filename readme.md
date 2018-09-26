@@ -8,7 +8,7 @@
 
 ## Usage
 ```
-$nameFile = PrepareFile::uploadFile('folder_save', 'type:_image_or_file', 'file_for_save', 'name_old_file', 'name_save_file', '['xs' => ['width' => 10, 'height' => 10]](optional)', 'save_format_ex:_png(optional)');
+$nameFile = PrepareFile::uploadFile('folder_save', 'type:image_or_file', 'file_for_save', 'name_old_file', 'name_save_file', '['xs' => ['width' => 10, 'height' => 10]](optional)', 'save_format_ex:png(optional)');
 ```
 
 `function return name saved file`
