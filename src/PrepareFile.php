@@ -41,6 +41,7 @@ class PrepareFile
                     (new ManageImage())->saveImage($file, $folder, $fileName, $imageSizes, $old_file, $do, $diskName);
                     break;
                 case 'file':
+                    (new ManageFile())->saveFile($file, $folder, $fileName, $old_file, $diskName);
                     break;
             }
 
