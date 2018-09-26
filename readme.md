@@ -7,7 +7,8 @@
 `composer require fynduck/files-upload`
 
 ## Usage
-Write a few lines about the usage of this package.
+$nameFile = PrepareFile::uploadFile('folder_save', 'type:_image_or_file', 'file_for_save', 'name_old_file', 'name_save_file', '['xs' => ['width' => 10, 'height' => 10]](optional)', 'save_format_ex:_png(optional)');
+`function return name saved file
 
 ## Testing
 Run the tests with:
@@ -16,14 +17,8 @@ Run the tests with:
 vendor/bin/phpunit
 ```
 
-## Changelog
-Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
-
 ## Contributing
 Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Security
-If you discover any security-related issues, please email DummyAuthorEmail instead of using the issue tracker.
 
 ## License
 The MIT License (MIT). Please see [License File](/LICENSE.md) for more information.
