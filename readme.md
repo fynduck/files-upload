@@ -18,13 +18,6 @@ $nameFile = PrepareFile::uploadFile('folder_save', 'file', 'file_save', 'name_ol
 
 `function return name saved file`
 
-## Testing
-Run the tests with:
-
-``` bash
-vendor/bin/phpunit
-```
-
 ## Contributing
 Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
