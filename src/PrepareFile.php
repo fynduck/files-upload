@@ -125,7 +125,7 @@ class PrepareFile
         /**
          * remove sizes images
          */
-        if($sizes) {
+        if ($sizes) {
             foreach ($sizes as $folderSize => $size)
                 Storage::disk($diskName)->delete($folder . '/' . $folderSize . '/' . $name);
         }
@@ -135,5 +135,53 @@ class PrepareFile
         Storage::disk($diskName)->delete($folder . '/' . $name);
 
         return true;
+    }
+
+    /**
+     * Crop images if exist in folder
+     * @param $folder
+     * @param $imageName
+     * @param $imageSizes
+     * @param string $diskName
+     * @return array
+     */
+    public function reCropImages($folder, $imageName, $imageSizes, $diskName = 'public')
+    {
+        $result = ['main' => '', 'gallery' => ''];
+        $folder = trim($folder, '/');
+
+        if (Storage::disk($diskName)->exists($folder)) {
+            //images in folder
+            $files = [];
+            $filesInFolder = Storage::disk($diskName)->allFiles($folder);
+
+            if ($filesInFolder) {
+                foreach ($filesInFolder as $item) {
+                    $pathinfo = pathinfo($item);
+                    if ($pathinfo['dirname'] == Storage::disk($diskName)->path($folder))
+                        $files[] = $pathinfo['basename'];
+                }
+                sort($files);
+            }
+
+            //resize images
+            if ($files) {
+                foreach ($files as $file) {
+                    foreach ($imageSizes as $folderSize => $size) {
+                        (new ManageImage())->cropImage($folder, $file, $folderSize, $size, 'public');
+                    }
+                }
+                if ($imageName && in_array($imageName, $files)) {
+                    $result['main'] = $imageName;
+                } else {
+                    $result['main'] = $files[0];
+                }
+                $gallery = array_diff($files, [$result['main']]);
+                if ($gallery)
+                    $result['gallery'] = $gallery;
+            }
+        }
+
+        return $result;
     }
 }

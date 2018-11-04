@@ -46,7 +46,7 @@ class ManageImage
      * @param $diskName
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
-    private function cropImage($folder, $imageName, $folderSize, $size, $diskName)
+    public function cropImage($folder, $imageName, $folderSize, $size, $diskName)
     {
         /**
          * Get original image
@@ -98,7 +98,7 @@ class ManageImage
      * @param $diskName
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
-    private function resizeImage($folder, $imageName, $folderSize, $size, $diskName)
+    public function resizeImage($folder, $imageName, $folderSize, $size, $diskName)
     {
         /**
          * Get original image
