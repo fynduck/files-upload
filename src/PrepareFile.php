@@ -145,7 +145,7 @@ class PrepareFile
      * @param string $diskName
      * @return array
      */
-    public function reCropImages($folder, $imageName, $imageSizes, $diskName = 'public')
+    public static function reCropImages($folder, $imageName, $imageSizes, $diskName = 'public')
     {
         $result = ['main' => '', 'gallery' => ''];
         $folder = trim($folder, '/');
@@ -158,7 +158,7 @@ class PrepareFile
             if ($filesInFolder) {
                 foreach ($filesInFolder as $item) {
                     $pathinfo = pathinfo($item);
-                    if ($pathinfo['dirname'] == Storage::disk($diskName)->path($folder))
+                    if ($pathinfo['dirname'] == $folder)
                         $files[] = $pathinfo['basename'];
                 }
                 sort($files);
