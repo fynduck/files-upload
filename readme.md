@@ -8,15 +8,30 @@
 `composer require fynduck/files-upload`
 
 ## Usage
+**Upload image**
 ```
-$nameImg = PrepareFile::uploadFile('folder_save', 'image', 'image_save', 'name_old_img', 'name_save_file', '['xs' => ['width' => 10, 'height' => 10]](optional)', 'save_format_ex:png(optional)');
+$nameImg = PrepareFile::uploadFile('folder_save', 'image', 'image_save', 'name_old_img', 'name_save_file');
 ```
 
+**Upload file**
 ```
 $nameFile = PrepareFile::uploadFile('folder_save', 'file', 'file_save', 'name_old_file', 'name_save_file');
 ```
 
+**Upload base64**
+```
+$nameFile = PrepareFile::uploadBase64('folder_save', 'file/image', 'file_save', 'name_old_file', 'name_save_file');
+```
+
 `function return name saved file`
+
+Yor can sent to method optional params
+> ###### send size array
+> ````['xs' => ['width' => 10, 'height' => 10]]````
+> ###### format save
+> ```````png/jpeg/jpg....```````
+> ###### disk save
+> ```````default is public```````
 
 ## Contributing
 Please see [CONTRIBUTING](CONTRIBUTING.md) for details.

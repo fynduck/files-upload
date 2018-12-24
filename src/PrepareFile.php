@@ -184,4 +184,24 @@ class PrepareFile
 
         return $result;
     }
+
+    /**
+     * Upload base64 file
+     * @param $folder
+     * @param $typeFile
+     * @param $file
+     * @param $title
+     * @param array $size
+     * @param string $do
+     * @param string $diskName
+     * @return mixed|string
+     */
+    public static function uploadBase64($folder, $typeFile, $file, $title, $size = [], $do = 'crop', $diskName = 'public')
+    {
+        list($type, $file) = explode(';', $file);
+        list(, $file) = explode(',', $file);
+        $format = explode('/', $type)[1];
+
+        return self::uploadFile($folder, $typeFile, $file, null, $title, $size, $format, $do, $diskName);
+    }
 }
