@@ -202,6 +202,6 @@ class PrepareFile
         list(, $file) = explode(',', $file);
         $format = explode('/', $type)[1];
 
-        return self::uploadFile($folder, $typeFile, $file, null, $title, $size, $format, $do, $diskName);
+        return self::uploadFile($folder, $typeFile, base64_decode($file), null, $title, $size, $format, $do, $diskName);
     }
 }
