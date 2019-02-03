@@ -21,7 +21,7 @@ class ManageImage
         if ($oldImg)
             (new PrepareFile())->deleteImages($folder, $name, $sizes, $diskName);
 
-        Storage::disk($diskName)->putFileAs($folder, $image, $name);
+        Storage::disk($diskName)->put($folder . '/' . $name, $image);
 
         switch ($do) {
             case 'crop':
