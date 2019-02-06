@@ -20,6 +20,9 @@ class ManageFile
         if ($oldFile)
             (new PrepareFile())->deleteImages($folder, $name);
 
-        Storage::disk($diskName)->put($folder . '/' . $name, $file);
+        if (is_uploaded_file($file))
+            Storage::disk($diskName)->putFileAs($folder, $file, $name);
+        else
+            Storage::disk($diskName)->put($folder . '/' . $name, $file);
     }
 }

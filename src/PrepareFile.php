@@ -44,7 +44,6 @@ class PrepareFile
                     (new ManageFile())->saveFile($file, $folder, $fileName, $old_file, $diskName);
                     break;
             }
-
         }
 
         return $fileName;
