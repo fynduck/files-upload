@@ -30,6 +30,7 @@ Yor can sent to method optional params
 > ````['xs' => ['width' => 10, 'height' => 10]]````
 > ###### resize only by width or height
 > ````['xs' => ['width' => 10, 'height' => null]]````
+
 > ````['xs' => ['width' => null, 'height' => 10]]````
 > ###### format save
 > ```````png/jpeg/jpg....```````
