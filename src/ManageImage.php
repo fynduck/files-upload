@@ -68,23 +68,30 @@ class ManageImage
         /**
          * Verify width / height for crop
          */
-        if (($widthImg / $size['width']) > ($heightImg / $size['height'])) {
-            $image->resize($size['width'], null, function ($constraint) {
-                $constraint->aspectRatio();
-                $constraint->upsize();
-            });
+        if ($size['width'] && $size['height']) {
+            if (($widthImg / $size['width']) > ($heightImg / $size['height'])) {
+                $image->resize($size['width'], null, function ($constraint) {
+                    $constraint->aspectRatio();
+                    $constraint->upsize();
+                });
+            } else {
+                $image->resize(null, $size['height'], function ($constraint) {
+                    $constraint->aspectRatio();
+                    $constraint->upsize();
+                });
+            }
+
+            /**
+             * Add background if width || height less than new resize
+             */
+            $background = Image::canvas($size['width'], $size['height']);
+            $image = $background->insert($image, 'center');
         } else {
-            $image->resize(null, $size['height'], function ($constraint) {
+            $image->resize($size['width'], $size['height'], function ($constraint) {
                 $constraint->aspectRatio();
                 $constraint->upsize();
             });
         }
-
-        /**
-         * Add background if width || height less than new resize
-         */
-        $background = Image::canvas($size['width'], $size['height']);
-        $image = $background->insert($image, 'center');
 
         /**
          * Save crop
@@ -120,11 +127,10 @@ class ManageImage
         /**
          * Verify width / height for resize
          */
-        if (($widthImg / $size['width']) > ($heightImg / $size['height'])) {
+        if (($widthImg / $size['width']) > ($heightImg / $size['height']))
             $image->widen($size['width']);
-        } else {
+        else
             $image->heighten($size['height']);
-        }
 
         /**
          * Save resize
