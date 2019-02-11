@@ -28,6 +28,9 @@ $nameFile = PrepareFile::uploadBase64('folder_save', 'file/image', 'file_save', 
 Yor can sent to method optional params
 > ###### send size array
 > ````['xs' => ['width' => 10, 'height' => 10]]````
+> ###### resize only by width or height
+> ````['xs' => ['width' => 10, 'height' => null]]````
+> ````['xs' => ['width' => null, 'height' => 10]]````
 > ###### format save
 > ```````png/jpeg/jpg....```````
 > ###### disk save
