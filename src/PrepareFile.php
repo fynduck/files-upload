@@ -193,7 +193,7 @@ class PrepareFile
      * @param null $old_file
      * @param array $size
      * @param string $do
-     * @param string $diskName
+     * @param string $diskName`
      * @return mixed|string
      */
     public static function uploadBase64($folder, $typeFile, $file, $title, $old_file = null, $size = [], $do = 'crop', $diskName = 'public')

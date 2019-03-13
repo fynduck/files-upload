@@ -96,7 +96,7 @@ class ManageImage
         /**
          * Save crop
          */
-        $image->save(storage_path('app/public/' . $folder . '/' . $folderSize . '/' . $imageName));
+        $image->save(Storage::disk($diskName)->getDriver()->getAdapter()->getPathPrefix() . $folder . '/' . $folderSize . '/' . $imageName);
     }
 
     /**
@@ -135,6 +135,6 @@ class ManageImage
         /**
          * Save resize
          */
-        $image->save(storage_path('app/public/' . $folder . '/' . $folderSize . '/' . $imageName));
+        $image->save(Storage::disk($diskName)->getDriver()->getAdapter()->getPathPrefix() . $folder . '/' . $folderSize . '/' . $imageName);
     }
 }
