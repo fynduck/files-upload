@@ -58,7 +58,7 @@ class PrepareFile
      * @param string $diskName
      * @return string
      */
-    private static function generateNameFile($file, $folder, $title = '', $extension = null, $diskName = 'public')
+    private static function generateNameFile($file, $folder, $title = null, $extension = null, $diskName = 'public')
     {
         $fileName = str_slug($title, '_');
 
