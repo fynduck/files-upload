@@ -19,7 +19,7 @@ class ManageImage
          * remove old images
          */
         if ($oldImg)
-            (new PrepareFile())->deleteImages($folder, $name, $sizes, $diskName);
+            (new PrepareFile())->deleteImages($folder, $oldImg, $sizes, $diskName);
 
         if (is_uploaded_file($image))
             Storage::disk($diskName)->putFileAs($folder, $image, $name);
