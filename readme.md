@@ -34,6 +34,10 @@ Yor can sent to method optional params
 > ````['xs' => ['width' => null, 'height' => 10]]````
 > ###### format save
 > ```````png/jpeg/jpg....```````
+>> ###### crop or resize
+> ```````crop/resize```````
+>>> ###### background on crop 
+> ```````#ff0000```````
 > ###### disk save
 > ```````default is public```````
 

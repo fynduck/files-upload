@@ -22,10 +22,11 @@ class PrepareFile
      * @param array $imageSizes
      * @param null $ext
      * @param string $do
+     * @param null $bg
      * @param string $diskName
      * @return mixed|string
      */
-    public static function uploadFile($folder, $typeFile, $file, $old_file, $title, $imageSizes = [], $ext = null, $do = 'crop', $diskName = 'public')
+    public static function uploadFile($folder, $typeFile, $file, $old_file, $title, $imageSizes = [], $ext = null, $do = 'crop', $bg = null, $diskName = 'public')
     {
         $fileName = '';
         if ($old_file)
@@ -38,7 +39,7 @@ class PrepareFile
 
             switch ($typeFile) {
                 case 'image':
-                    (new ManageImage())->saveImage($file, $folder, $fileName, $imageSizes, $old_file, $do, $diskName);
+                    (new ManageImage())->saveImage($file, $folder, $fileName, $imageSizes, $old_file, $do, $bg, $diskName);
                     break;
                 case 'file':
                     (new ManageFile())->saveFile($file, $folder, $fileName, $old_file, $diskName);
@@ -193,15 +194,16 @@ class PrepareFile
      * @param null $old_file
      * @param array $size
      * @param string $do
-     * @param string $diskName`
+     * @param null $bg
+     * @param string $diskName `
      * @return mixed|string
      */
-    public static function uploadBase64($folder, $typeFile, $file, $title, $old_file = null, $size = [], $do = 'crop', $diskName = 'public')
+    public static function uploadBase64($folder, $typeFile, $file, $title, $old_file = null, $size = [], $do = 'crop', $bg = null, $diskName = 'public')
     {
         list($type, $file) = explode(';', $file);
         list(, $file) = explode(',', $file);
         $format = explode('/', $type)[1];
 
-        return self::uploadFile($folder, $typeFile, base64_decode($file), $old_file, $title, $size, $format, $do, $diskName);
+        return self::uploadFile($folder, $typeFile, base64_decode($file), $old_file, $title, $size, $format, $do, $bg, $diskName);
     }
 }

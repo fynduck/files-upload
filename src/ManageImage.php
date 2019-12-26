@@ -13,7 +13,7 @@ use Intervention\Image\Facades\Image;
 
 class ManageImage
 {
-    public function saveImage($image, $folder, $name, $sizes, $oldImg, $do, $diskName = 'public')
+    public function saveImage($image, $folder, $name, $sizes, $oldImg, $do, $bg, $diskName = 'public')
     {
         /**
          * remove old images
@@ -29,7 +29,7 @@ class ManageImage
         switch ($do) {
             case 'crop':
                 foreach ($sizes as $folderSize => $size) {
-                    $this->cropImage($folder, $name, $folderSize, $size, $diskName);
+                    $this->cropImage($folder, $name, $folderSize, $size, $bg, $diskName);
                 }
                 break;
             case 'resize':
@@ -46,10 +46,10 @@ class ManageImage
      * @param $imageName
      * @param $folderSize
      * @param $size
+     * @param $bg
      * @param $diskName
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
-    public function cropImage($folder, $imageName, $folderSize, $size, $diskName)
+    public function cropImage($folder, $imageName, $folderSize, $size, $bg, $diskName)
     {
         /**
          * Get original image
@@ -84,7 +84,7 @@ class ManageImage
             /**
              * Add background if width || height less than new resize
              */
-            $background = Image::canvas($size['width'], $size['height']);
+            $background = Image::canvas($size['width'], $size['height'], $bg);
             $image = $background->insert($image, 'center');
         } else {
             $image->resize($size['width'], $size['height'], function ($constraint) {
