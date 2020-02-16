@@ -142,10 +142,11 @@ class PrepareFile
      * @param $folder
      * @param $imageName
      * @param $imageSizes
+     * @param null $bg
      * @param string $diskName
      * @return array
      */
-    public static function reCropImages($folder, $imageName, $imageSizes, $diskName = 'public')
+    public static function reCropImages($folder, $imageName, $imageSizes, $bg = null, $diskName = 'public')
     {
         $result = ['main' => '', 'gallery' => ''];
         $folder = trim($folder, '/');
@@ -168,7 +169,7 @@ class PrepareFile
             if ($files) {
                 foreach ($files as $file) {
                     foreach ($imageSizes as $folderSize => $size) {
-                        (new ManageImage())->cropImage($folder, $file, $folderSize, $size, 'public');
+                        (new ManageImage())->cropImage($folder, $file, $folderSize, $size, $bg, 'public');
                     }
                 }
                 if ($imageName && in_array($imageName, $files)) {
