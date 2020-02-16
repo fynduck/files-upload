@@ -61,7 +61,7 @@ class PrepareFile
      */
     private static function generateNameFile($file, $folder, $title = null, $extension = null, $diskName = 'public')
     {
-        $fileName = str_slug($title, '_');
+        $fileName = \Str::slug($title, '_');
 
         /**
          * extract extension if not defined
@@ -81,7 +81,7 @@ class PrepareFile
             $arrayName = explode('.', $origName);
             array_pop($arrayName);
 
-            $fileName = str_slug(implode('_', $arrayName), '_');
+            $fileName = \Str::slug(implode('_', $arrayName), '_');
         }
 
         /**
@@ -95,7 +95,7 @@ class PrepareFile
          * Verify if exist file of this name, if exist change file name
          */
         if (Storage::disk($diskName)->exists($folder . '/' . $fileName . '.' . $extension))
-            $fileName = $fileName . '_' . str_random(8);
+            $fileName = $fileName . '_' . \Str::random(8);
 
         return $fileName . '.' . $extension;
     }

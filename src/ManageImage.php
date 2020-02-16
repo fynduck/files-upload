@@ -113,7 +113,7 @@ class ManageImage
         /**
          * Get original image
          */
-        $urlImg = Storage::disk($diskName)->get(str_finish($folder, '/') . $imageName);
+        $urlImg = Storage::disk($diskName)->get(\Str::finish($folder, '/') . $imageName);
         $image = Image::make($urlImg);
 
         /**
