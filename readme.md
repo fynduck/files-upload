@@ -7,6 +7,8 @@
 ## Install
 `composer require fynduck/files-upload`
 
+### For laravel < 5.7 use verion 1.8
+
 ## Usage
 **Upload image**
 ```
