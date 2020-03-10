@@ -80,18 +80,18 @@ class ManageImage
                     $constraint->upsize();
                 });
             }
-
-            /**
-             * Add background if width || height less than new resize
-             */
-            $background = Image::canvas($size['width'], $size['height'], $bg);
-            $image = $background->insert($image, 'center');
         } else {
             $image->resize($size['width'], $size['height'], function ($constraint) {
                 $constraint->aspectRatio();
                 $constraint->upsize();
             });
         }
+
+        /**
+         * Add background if width || height less than new resize
+         */
+        $background = Image::canvas($image->width(), $image->height(), $bg);
+        $image = $background->insert($image, 'center');
 
         /**
          * Save crop
