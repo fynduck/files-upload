@@ -37,6 +37,9 @@ class PrepareFile
             $fileName = self::generateNameFile($file, $folder, $title, $ext, $diskName);
             self::checkFolder($folder, $diskName);
 
+            if ($file->getClientOriginalExtension() == 'svg')
+                $do = null;
+
             switch ($typeFile) {
                 case 'image':
                     (new ManageImage())->saveImage($file, $folder, $fileName, $imageSizes, $old_file, $do, $bg, $diskName);
