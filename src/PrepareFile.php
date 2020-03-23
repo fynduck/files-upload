@@ -37,6 +37,9 @@ class PrepareFile
             $fileName = self::generateNameFile($file, $folder, $title, $ext, $diskName);
             self::checkFolder($folder, $diskName);
 
+            if ($file->getClientOriginalExtension() == 'svg')
+                $do = null;
+
             switch ($typeFile) {
                 case 'image':
                     (new ManageImage())->saveImage($file, $folder, $fileName, $imageSizes, $old_file, $do, $bg, $diskName);
@@ -87,8 +90,8 @@ class PrepareFile
         /**
          * replace prohibited symbols
          */
-        $pattern = array('/\s+/', '/,/');
-        $replace = array('_', '_');
+        $pattern = ['/\s+/', '/,/'];
+        $replace = ['_', '_'];
         $fileName = preg_replace($pattern, $replace, $fileName);
 
         /**
@@ -200,8 +203,8 @@ class PrepareFile
      */
     public static function uploadBase64($folder, $typeFile, $file, $title, $old_file = null, $size = [], $do = 'crop', $bg = null, $diskName = 'public')
     {
-        list($type, $file) = explode(';', $file);
-        list(, $file) = explode(',', $file);
+        [$type, $file] = explode(';', $file);
+        [, $file] = explode(',', $file);
         $format = explode('/', $type)[1];
 
         return self::uploadFile($folder, $typeFile, base64_decode($file), $old_file, $title, $size, $format, $do, $bg, $diskName);
