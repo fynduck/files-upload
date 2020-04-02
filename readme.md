@@ -46,7 +46,7 @@ Yor can sent to method optional params
 ## Contributing
 Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
-[![JetBrains](/phpstorm.png =width=50)](https://www.jetbrains.com/?from=files-upload)
+[![JetBrains|50x50](/phpstorm.png)](https://www.jetbrains.com/?from=files-upload)
 
 ## License
 The MIT License (MIT). Please see [License File](/LICENSE.md) for more information.
