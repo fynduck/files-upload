@@ -80,6 +80,12 @@ class ManageImage
                     $constraint->upsize();
                 });
             }
+
+            /**
+             * Set final size image
+             */
+            $widthImg = $size['width'];
+            $heightImg = $size['height'];
         } else {
             $image->resize($size['width'], $size['height'], function ($constraint) {
                 $constraint->aspectRatio();
@@ -90,7 +96,7 @@ class ManageImage
         /**
          * Add background if width || height less than new resize
          */
-        $background = Image::canvas($image->width(), $image->height(), $bg);
+        $background = Image::canvas($widthImg, $heightImg, $bg);
         $image = $background->insert($image, 'center');
 
         /**
