@@ -37,7 +37,7 @@ class PrepareFile
             $fileName = self::generateNameFile($file, $folder, $title, $ext, $diskName);
             self::checkFolder($folder, $diskName);
 
-            if ($file->getClientOriginalExtension() == 'svg')
+            if (($ext && $ext == 'svg') || (!$ext && $file->getClientOriginalExtension() == 'svg'))
                 $do = null;
 
             switch ($typeFile) {
