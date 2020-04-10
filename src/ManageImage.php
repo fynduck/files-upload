@@ -91,6 +91,12 @@ class ManageImage
                 $constraint->aspectRatio();
                 $constraint->upsize();
             });
+
+            /**
+             * Set final size image
+             */
+            $widthImg = $image->width();
+            $heightImg = $image->height();
         }
 
         /**
