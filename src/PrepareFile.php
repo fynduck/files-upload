@@ -34,6 +34,10 @@ class PrepareFile
 
         if ($file) {
             $folder = trim($folder, '/');
+
+            if (strpos($ext, 'svg') !== false)
+                $ext = 'svg';
+
             $fileName = self::generateNameFile($file, $folder, $title, $ext, $diskName);
             self::checkFolder($folder, $diskName);
 
