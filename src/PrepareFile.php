@@ -26,7 +26,7 @@ class PrepareFile
      * @param string $diskName
      * @return mixed|string
      */
-    public static function uploadFile($folder, $typeFile, $file, $old_file, $title, $imageSizes = [], $ext = null, $do = 'crop', $bg = null, $diskName = 'public')
+    public static function uploadFile($folder, $typeFile, $file, $old_file, $title, $imageSizes = [], $ext = null, $do = 'resize', $bg = null, $diskName = 'public')
     {
         $fileName = '';
         if ($old_file)
@@ -176,7 +176,7 @@ class PrepareFile
             if ($files) {
                 foreach ($files as $file) {
                     foreach ($imageSizes as $folderSize => $size) {
-                        (new ManageImage())->cropImage($folder, $file, $folderSize, $size, $bg, 'public');
+                        (new ManageImage())->resizeImage($folder, $file, $folderSize, $size, $bg, 'public');
                     }
                 }
                 if ($imageName && in_array($imageName, $files)) {

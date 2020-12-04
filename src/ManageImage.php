@@ -29,12 +29,12 @@ class ManageImage
         switch ($do) {
             case 'crop':
                 foreach ($sizes as $folderSize => $size) {
-                    $this->cropImage($folder, $name, $folderSize, $size, $bg, $diskName);
+                    $this->cropImage($folder, $name, $folderSize, $size, $diskName);
                 }
                 break;
             case 'resize':
                 foreach ($sizes as $folderSize => $size) {
-                    $this->resizeImage($folder, $name, $folderSize, $size, $diskName);
+                    $this->resizeImage($folder, $name, $folderSize, $size, $bg, $diskName);
                 }
                 break;
         }
@@ -46,10 +46,9 @@ class ManageImage
      * @param $imageName
      * @param $folderSize
      * @param $size
-     * @param $bg
      * @param $diskName
      */
-    public function cropImage($folder, $imageName, $folderSize, $size, $bg, $diskName)
+    public function cropImage($folder, $imageName, $folderSize, $size, $diskName)
     {
         /**
          * Get original image
@@ -61,6 +60,49 @@ class ManageImage
          * Check isset folder size
          */
         (new PrepareFile())->checkFolder($folder . '/' . $folderSize, $diskName);
+
+        $widthImg = $image->width();
+        $heightImg = $image->height();
+
+        /**
+         * Verify width / height for resize
+         */
+        if (!$size['width'] || !$size['height']) {
+            if (($widthImg / $size['width']) > ($heightImg / $size['height']))
+                $image->widen($size['width']);
+            else
+                $image->heighten($size['height']);
+        } else {
+            $image->crop($size['width'], $size['height']);
+        }
+
+        /**
+         * Save cropped image
+         */
+        $image->save(Storage::disk($diskName)->getDriver()->getAdapter()->getPathPrefix() . $folder . '/' . $folderSize . '/' . $imageName);
+    }
+
+    /**
+     * Resize image
+     * @param $folder
+     * @param $imageName
+     * @param $folderSize
+     * @param $size
+     * @param $bg
+     * @param $diskName
+     */
+    public function resizeImage($folder, $imageName, $folderSize, $size, $bg, $diskName)
+    {
+        /**
+         * Get original image
+         */
+        $urlImg = Storage::disk($diskName)->get(\Str::finish($folder, '/') . $imageName);
+        $image = Image::make($urlImg);
+
+        /**
+         * Check isset folder size
+         */
+        (new PrepareFile())->checkFolder($folderSize, $diskName);
 
         $widthImg = $image->width();
         $heightImg = $image->height();
@@ -104,45 +146,6 @@ class ManageImage
          */
         $background = Image::canvas($widthImg, $heightImg, $bg);
         $image = $background->insert($image, 'center');
-
-        /**
-         * Save crop
-         */
-        $image->save(Storage::disk($diskName)->getDriver()->getAdapter()->getPathPrefix() . $folder . '/' . $folderSize . '/' . $imageName);
-    }
-
-    /**
-     * Resize image
-     * @param $folder
-     * @param $imageName
-     * @param $folderSize
-     * @param $size
-     * @param $diskName
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
-     */
-    public function resizeImage($folder, $imageName, $folderSize, $size, $diskName)
-    {
-        /**
-         * Get original image
-         */
-        $urlImg = Storage::disk($diskName)->get(\Str::finish($folder, '/') . $imageName);
-        $image = Image::make($urlImg);
-
-        /**
-         * Check isset folder size
-         */
-        (new PrepareFile())->checkFolder($folderSize, $diskName);
-
-        $widthImg = $image->width();
-        $heightImg = $image->height();
-
-        /**
-         * Verify width / height for resize
-         */
-        if (($widthImg / $size['width']) > ($heightImg / $size['height']))
-            $image->widen($size['width']);
-        else
-            $image->heighten($size['height']);
 
         /**
          * Save resize
