@@ -175,7 +175,7 @@ class PrepareFile
             if ($files) {
                 foreach ($files as $file) {
                     foreach ($imageSizes as $folderSize => $size) {
-                        (new ManageImage())->cropImage($folder, $file, $folderSize, $size, 'public');
+                        (new ManageImage())->cropImage($folder, $file, $folderSize, $size, null, 'public');
                     }
                 }
                 if ($imageName && in_array($imageName, $files)) {
