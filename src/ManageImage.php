@@ -29,12 +29,14 @@ class ManageImage
         switch ($do) {
             case 'crop':
                 foreach ($sizes as $folderSize => $size) {
-                    $this->cropImage($folder, $name, $folderSize, $size, $diskName);
+                    if ($size['width'] || $size['height'])
+                        $this->cropImage($folder, $name, $folderSize, $size, $diskName);
                 }
                 break;
             case 'resize':
                 foreach ($sizes as $folderSize => $size) {
-                    $this->resizeImage($folder, $name, $folderSize, $size, $bg, $diskName);
+                    if ($size['width'] || $size['height'])
+                        $this->resizeImage($folder, $name, $folderSize, $size, $bg, $diskName);
                 }
                 break;
         }
@@ -61,19 +63,16 @@ class ManageImage
          */
         (new PrepareFile())->checkFolder($folder . '/' . $folderSize, $diskName);
 
-        $widthImg = $image->width();
-        $heightImg = $image->height();
-
         /**
          * Verify width / height for resize
          */
-        if (!$size['width'] || !$size['height']) {
-            if (($widthImg / $size['width']) > ($heightImg / $size['height']))
+        if ($size['width'] && $size['height']) {
+            $image->crop($size['width'], $size['height']);
+        } else {
+            if ($size['width'])
                 $image->widen($size['width']);
             else
                 $image->heighten($size['height']);
-        } else {
-            $image->crop($size['width'], $size['height']);
         }
 
         /**
