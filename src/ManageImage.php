@@ -101,7 +101,7 @@ class ManageImage
         /**
          * Check isset folder size
          */
-        (new PrepareFile())->checkFolder($folderSize, $diskName);
+        (new PrepareFile())->checkFolder($folder . '/' . $folderSize, $diskName);
 
         $widthImg = $image->width();
         $heightImg = $image->height();
