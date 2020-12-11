@@ -206,7 +206,7 @@ class PrepareFile
      * @param string $diskName `
      * @return mixed|string
      */
-    public static function uploadBase64($folder, $typeFile, $file, $title, $old_file = null, $size = [], $do = 'crop', $bg = null, $diskName = 'public')
+    public static function uploadBase64($folder, $typeFile, $file, $title, $old_file = null, $size = [], $do = 'resize', $bg = null, $diskName = 'public')
     {
         list($type, $file) = explode(';', $file);
         list(, $file) = explode(',', $file);
