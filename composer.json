@@ -21,12 +21,12 @@
   },
     "autoload": {
         "psr-4": {
-            "Fynduck\\files-upload\\": "./src"
+            "Fynduck\\FilesUpload\\": "./src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Fynduck\\files-upload\\Test\\": "tests"
+            "Fynduck\\FilesUpload\\Test\\": "tests"
         }
     },
     "scripts": {
@@ -35,7 +35,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Fynduck\\files-upload\\FilesUploadServiceProvider"
+                "Fynduck\\FilesUpload\\FilesUploadServiceProvider"
             ]
         }
     }
