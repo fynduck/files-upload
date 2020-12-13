@@ -29,6 +29,8 @@ class UploadFile
 
     protected $sizes = [];
 
+    protected $background = null;
+
     public static function file($file): UploadFile
     {
         return new static($file);
@@ -125,7 +127,9 @@ class UploadFile
         if ($this->sizes) {
             ManipulationImage::load($pathImage)
                 ->setSizes($this->sizes)
+                ->setFolder($this->folder)
                 ->setName($this->getFullName())
+                ->setBackground($this->background)
                 ->save();
         }
 

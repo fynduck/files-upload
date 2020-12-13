@@ -124,7 +124,7 @@ class ManipulationImage
         /**
          * Check if exist folder if not exist create folder
          */
-        $this->checkOrCreateFolder($this->getFolder($folderSave));
+        $this->checkOrCreateFolder($this->getFolder($folderSize));
 
         /**
          * Save cropped image
@@ -192,7 +192,7 @@ class ManipulationImage
         /**
          * Check if exist folder if not exist create folder
          */
-        $this->checkOrCreateFolder($this->getFolder($folderSave));
+        $this->checkOrCreateFolder($this->getFolder($folderSize));
 
         /**
          * Save resize
