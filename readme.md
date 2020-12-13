@@ -7,9 +7,30 @@
 ## Install
 `composer require fynduck/files-upload`
 
-### For laravel < 5.7 use version 1.8
+
+| **Laravel**  |  **files-upload** | **Php version** |
+|---|---|---|
+| ``<`` 5.7   | 1.8  | ^5.6
+| ``>=`` 5.7  | ^2.0 | ^5.6
+| ``>=`` 5.7  | ^3.0 | ^7.1
+
+## For laravel < 5.7 use version 1.8
 
 ## Usage
+**Upload file or image**
+```php
+use Fynduck\FilesUpload\UploadFile;
+
+UploadFile::file($request->file('file')) //or $request->get('base64') //(required)
+    ->setFolder('Post') //(optional)
+    ->setName('image_name') //(optional) use file name or random in case base64
+    ->setOverwrite(false) //(optional)
+    ->setSizes(['xs' => ['width' => 100, 'height' => 100]]) //(optional) if need other sizes
+    ->setExtension('png') //(optional)
+    ->save();
+```
+
+## Usage for version below ^3
 **Upload image**
 ```
 $nameImg = PrepareFile::uploadFile('folder_save', 'image', 'image_save', 'name_old_img', 'name_save_file');
@@ -27,7 +48,7 @@ $nameFile = PrepareFile::uploadBase64('folder_save', 'file/image', 'file_save', 
 
 `function return name saved file`
 
-Yor can sent to method optional params
+### Optional params
 > ###### send size array
 > ````['xs' => ['width' => 10, 'height' => 10]]````
 > ###### resize only by width or height

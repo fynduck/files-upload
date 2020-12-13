@@ -109,7 +109,6 @@ class UploadFile
 
     public function save(): string
     {
-
         if ($this->overwrite && $this->name) {
             $this->deleteOld();
         }

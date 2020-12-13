@@ -53,7 +53,7 @@ class ManipulationImage
         return $this;
     }
 
-    public function setBackground(string $bg): ManipulationImage
+    public function setBackground(?string $bg): ManipulationImage
     {
         $this->background = $bg;
 
@@ -79,19 +79,15 @@ class ManipulationImage
 
     private function action($action)
     {
-        switch ($action) {
-            case 'crop':
-                foreach ($this->sizes as $folderSize => $size) {
-                    if ($size['width'] || $size['height'])
-                        $this->cropImage($folderSize, $size);
+        foreach ($this->sizes as $folderSize => $size) {
+            if ($size['width'] || $size['height']) {
+
+                if ($action === 'crop') {
+                    $this->cropImage($folderSize, $size);
+                } else if ($action === 'resize') {
+                    $this->resizeImage($folderSize, $size);
                 }
-                break;
-            case 'resize':
-                foreach ($this->sizes as $folderSize => $size) {
-                    if ($size['width'] || $size['height'])
-                        $this->resizeImage($folderSize, $size);
-                }
-                break;
+            }
         }
     }
 
@@ -212,7 +208,12 @@ class ManipulationImage
 
     private function checkOrCreateFolder(string $folder)
     {
-        if (!Storage::disk($this->disk)->exists($folder))
+        if (!$this->checkExist($folder))
             Storage::disk($this->disk)->makeDirectory($folder);
+    }
+
+    public function checkExist($path): bool
+    {
+        return Storage::disk($this->disk)->exists($path);
     }
 }
