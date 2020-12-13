@@ -76,6 +76,13 @@ class UploadFile
         return $this;
     }
 
+    public function setBackground(string $bg): UploadFile
+    {
+        $this->background = $bg;
+
+        return $this;
+    }
+
     private function is_uploaded(): bool
     {
         return is_uploaded_file($this->file);

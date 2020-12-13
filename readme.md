@@ -5,8 +5,8 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/fynduck/files-upload.svg?style=flat-square)](https://packagist.org/packages/fynduck/files-upload)
 
 ## Install
-`composer require fynduck/files-upload`
 
+`composer require fynduck/files-upload`
 
 | **Laravel**  |  **files-upload** | **Php version** |
 |---|---|---|
@@ -17,7 +17,9 @@
 ## For laravel < 5.7 use version 1.8
 
 ## Usage
+
 **Upload file or image**
+
 ```php
 use Fynduck\FilesUpload\UploadFile;
 
@@ -27,21 +29,37 @@ UploadFile::file($request->file('file')) //or $request->get('base64') //(require
     ->setOverwrite(false) //(optional)
     ->setSizes(['xs' => ['width' => 100, 'height' => 100]]) //(optional) if need other sizes
     ->setExtension('png') //(optional)
+    ->setBackground('#000000') //(optional)
     ->save();
 ```
 
+**Make new sizes from image**
+
+```php
+ManipulationImage::load($pathImage)
+            ->setFolder('Post')
+            ->setSizes(['xs' => ['width' => 100, 'height' => 100]])
+            ->setName('image_name.jpg')
+            ->setBackground('#000000') //(optional)
+            ->save();
+```
+
 ## Usage for version below ^3
+
 **Upload image**
+
 ```
 $nameImg = PrepareFile::uploadFile('folder_save', 'image', 'image_save', 'name_old_img', 'name_save_file');
 ```
 
 **Upload file**
+
 ```
 $nameFile = PrepareFile::uploadFile('folder_save', 'file', 'file_save', 'name_old_file', 'name_save_file');
 ```
 
 **Upload base64**
+
 ```
 $nameFile = PrepareFile::uploadBase64('folder_save', 'file/image', 'file_save', 'name_old_file', 'name_save_file');
 ```
@@ -49,6 +67,7 @@ $nameFile = PrepareFile::uploadBase64('folder_save', 'file/image', 'file_save', 
 `function return name saved file`
 
 ### Optional params
+
 > ###### send size array
 > ````['xs' => ['width' => 10, 'height' => 10]]````
 > ###### resize only by width or height
@@ -59,12 +78,13 @@ $nameFile = PrepareFile::uploadBase64('folder_save', 'file/image', 'file_save', 
 > ```````png/jpeg/jpg....```````
 >> ###### crop or resize
 > ```````crop/resize```````
->>> ###### background on crop 
+>> > ###### background on crop
 > ```````#ff0000```````
 > ###### disk save
 > ```````default is public```````
 
 ## Contributing
+
 Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 <a href="https://www.jetbrains.com/?from=files-upload">
@@ -72,4 +92,5 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 </a>
 
 ## License
+
 The MIT License (MIT). Please see [License File](/LICENSE.md) for more information.
