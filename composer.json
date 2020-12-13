@@ -21,12 +21,12 @@
   },
     "autoload": {
         "psr-4": {
-            "Fynduck\\FilesUpload\\": "./src"
+            "Fynduck\\files-upload\\": "./src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Fynduck\\FilesUpload\\Test\\": "tests"
+            "Fynduck\\files-upload\\Test\\": "tests"
         }
     },
     "scripts": {
