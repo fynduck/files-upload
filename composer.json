@@ -35,7 +35,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Fynduck\\FilesUpload\\FilesUploadServiceProvider"
+                "Fynduck\\files-upload\\FilesUploadServiceProvider"
             ]
         }
     }
