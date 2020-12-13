@@ -36,6 +36,8 @@ UploadFile::file($request->file('file')) //or $request->get('base64') //(require
 **Make new sizes from image**
 
 ```php
+use Fynduck\FilesUpload\ManipulationImage;
+
 ManipulationImage::load($pathImage)
             ->setFolder('Post')
             ->setSizes(['xs' => ['width' => 100, 'height' => 100]])
