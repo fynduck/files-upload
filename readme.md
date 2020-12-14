@@ -4,10 +4,6 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/fynduck/files-upload.svg?style=flat-square)](https://packagist.org/packages/fynduck/files-upload)
 [![Total Downloads](https://img.shields.io/packagist/dt/fynduck/files-upload.svg?style=flat-square)](https://packagist.org/packages/fynduck/files-upload)
 
-## Install
-
-`composer require fynduck/files-upload`
-
 | **Laravel**  |  **files-upload** | **Php version** |
 |---|---|---|
 | ``<`` 5.7   | ^1.8  | ^5.6
@@ -52,6 +48,10 @@ ManipulationImage::load($pathImage)
 
 * [Version ^2.0](https://github.com/fynduck/files-upload/tree/2.1.3)
 * [Version ^1.8](https://github.com/fynduck/files-upload/tree/1.8.6.2)
+
+## Install
+
+`composer require fynduck/files-upload`
 
 ## Contributing
 
