@@ -41,6 +41,13 @@ class UploadFile
         $this->file = $file;
     }
 
+    public function setDisk(string $disk): UploadFile
+    {
+        $this->disk = $disk;
+
+        return $this;
+    }
+
     public function setFolder(string $folder): UploadFile
     {
         $this->folder = $folder;

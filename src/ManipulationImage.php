@@ -32,6 +32,13 @@ class ManipulationImage
 
     }
 
+    public function setDisk(string $disk): ManipulationImage
+    {
+        $this->disk = $disk;
+
+        return $this;
+    }
+
     public function setSizes(array $sizes): ManipulationImage
     {
         $this->sizes = $sizes;
