@@ -10,8 +10,6 @@
 | ``>=`` 5.7  | ^2.0 | ^5.6
 | ``>=`` 5.7  | ^3.0 | ^7.1
 
-## For laravel < 5.7 use version 1.8
-
 ## Usage
 
 **Upload file or image**
@@ -43,6 +41,8 @@ ManipulationImage::load($pathImage)
             ->setBackground('#000000') //(optional)
             ->save();
 ```
+
+## For laravel < 5.7 use version 1.8
 
 ## Use for previous versions
 
