@@ -17,17 +17,17 @@
 ```php
 use Fynduck\FilesUpload\UploadFile;
 
-UploadFile::file($request->file('file')) //or $request->get('base64') //(required)
+UploadFile::file($request->file('file')) //or $request->get('base64'), required
     ->setDisk('storage') //default is public
-    ->setFolder('Post') //(optional)
-    ->setName('image_name') //(optional) default use file name or random in case base64
-    ->setOverwrite(false) //default is true
+    ->setFolder('Post') //optional
+    ->setName('image_name') //optional, default use file name or random in case base64
+    ->setOverwrite('old_name.jpg') //optional, remove file with old name
     ->setSizes(['xs' => ['width' => 100, 'height' => 100]]) //(optional) if need other sizes
     ->setExtension('png') //(optional) default use file extension
-    ->setBackground('#000000') //(optional)
-    ->setBlur() //(option)
-    ->setBrightness() //(option)
-    ->setGreyscale() //(option)
+    ->setBackground('#000000') //optional
+    ->setBlur() //optional, use values between 0 and 100
+    ->setBrightness() //optional, use values between -100 for min. brightness 0 for no change and +100 for max
+    ->setGreyscale() //optional
     ->save();
 ```
 
@@ -41,10 +41,11 @@ ManipulationImage::load($pathImage)
             ->setFolder('Post')
             ->setSizes(['xs' => ['width' => 100, 'height' => 100]])
             ->setName('image_name.jpg') //name with extension
-            ->setBackground('#000000') //(optional)
-            ->setBlur() //(option)
-            ->setBrightness() //(option)
-            ->setGreyscale() //(option)
+            ->setOverwrite('old_name.jpg') //optional, remove file with old name
+            ->setBackground('#000000') //optional
+            ->setBlur() //optional, use values between 0 and 100
+            ->setBrightness() //optional, use values between -100 for min. brightness 0 for no change and +100 for max
+            ->setGreyscale() //optional
             ->save();
 ```
 
