@@ -19,7 +19,7 @@ class UploadFile
 
     protected $extension;
 
-    protected $overwrite = true;
+    protected $overwrite;
 
     protected $disk = 'public';
 
@@ -30,6 +30,12 @@ class UploadFile
     protected $sizes = [];
 
     protected $background = null;
+
+    protected $blur;
+
+    protected $brightness;
+
+    protected $greyscale = false;
 
     public static function file($file): UploadFile
     {
@@ -69,7 +75,7 @@ class UploadFile
         return $this;
     }
 
-    public function setOverwrite(bool $overwrite): UploadFile
+    public function setOverwrite(string $overwrite): UploadFile
     {
         $this->overwrite = $overwrite;
 
@@ -86,6 +92,27 @@ class UploadFile
     public function setBackground(string $bg): UploadFile
     {
         $this->background = $bg;
+
+        return $this;
+    }
+
+    public function setBlur(int $blur = 1): UploadFile
+    {
+        $this->blur = $blur >= 0 ? $blur : null;
+
+        return $this;
+    }
+
+    public function setBrightness(int $brightness): UploadFile
+    {
+        $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;
+
+        return $this;
+    }
+
+    public function setGreyscale(): UploadFile
+    {
+        $this->greyscale = true;
 
         return $this;
     }
@@ -121,11 +148,9 @@ class UploadFile
         return "$this->name.$this->extension";
     }
 
-    public function save(): string
+    public function save(string $action = 'resize'): string
     {
-        if ($this->overwrite && $this->name) {
-            $this->deleteOld();
-        }
+        $this->deleteOld();
 
         $this->generateNameFile();
 
@@ -142,8 +167,12 @@ class UploadFile
                 ->setSizes($this->sizes)
                 ->setFolder($this->folder)
                 ->setName($this->getFullName())
+                ->setOverwrite($this->overwrite)
                 ->setBackground($this->background)
-                ->save();
+                ->setBlur($this->blur)
+                ->setBrightness($this->brightness)
+                ->setGreyscale($this->greyscale)
+                ->save($action);
         }
 
         return $this->getFullName();
@@ -151,15 +180,8 @@ class UploadFile
 
     private function deleteOld()
     {
-        $name = null;
-        if ($this->extension) {
-            $name = $this->name . '.' . $this->extension;
-        } elseif ($this->is_uploaded()) {
-            $name = $this->name . '.' . $this->file->getClientOriginalExtension();
-        }
-
-        if ($name) {
-            Storage::disk($this->disk)->delete($this->folder . '/' . $name);
+        if ($this->overwrite) {
+            Storage::disk($this->disk)->delete($this->folder . '/' . $this->overwrite);
         }
     }
 

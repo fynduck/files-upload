@@ -25,6 +25,9 @@ UploadFile::file($request->file('file')) //or $request->get('base64') //(require
     ->setSizes(['xs' => ['width' => 100, 'height' => 100]]) //(optional) if need other sizes
     ->setExtension('png') //(optional) default use file extension
     ->setBackground('#000000') //(optional)
+    ->setBlur() //(option)
+    ->setBrightness() //(option)
+    ->setGreyscale() //(option)
     ->save();
 ```
 
@@ -39,6 +42,9 @@ ManipulationImage::load($pathImage)
             ->setSizes(['xs' => ['width' => 100, 'height' => 100]])
             ->setName('image_name.jpg') //name with extension
             ->setBackground('#000000') //(optional)
+            ->setBlur() //(option)
+            ->setBrightness() //(option)
+            ->setGreyscale() //(option)
             ->save();
 ```
 

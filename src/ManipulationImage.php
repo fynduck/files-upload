@@ -13,6 +13,8 @@ class ManipulationImage
 
     protected $fileName;
 
+    protected $overwrite;
+
     protected $folder;
 
     protected $actions = ['resize', 'crop'];
@@ -20,6 +22,12 @@ class ManipulationImage
     protected $disk = 'public';
 
     protected $background = null;
+
+    protected $blur;
+
+    protected $brightness;
+
+    protected $greyscale;
 
     public static function load(string $pathImage): ManipulationImage
     {
@@ -53,6 +61,13 @@ class ManipulationImage
         return $this;
     }
 
+    public function setOverwrite(?string $overwrite): ManipulationImage
+    {
+        $this->overwrite = $overwrite;
+
+        return $this;
+    }
+
     public function setFolder(string $folder): ManipulationImage
     {
         $this->folder = $folder;
@@ -63,6 +78,28 @@ class ManipulationImage
     public function setBackground(?string $bg): ManipulationImage
     {
         $this->background = $bg;
+
+        return $this;
+    }
+
+    public function setBlur(?int $blur = 1): ManipulationImage
+    {
+        $this->blur = $blur >= 0 ? $blur : null;
+
+        return $this;
+    }
+
+    public function setBrightness(?int $brightness): ManipulationImage
+    {
+        $this->brightness = $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;;
+
+        return $this;
+    }
+
+
+    public function setGreyscale(bool $greyscale = true): ManipulationImage
+    {
+        $this->greyscale = $greyscale;
 
         return $this;
     }
@@ -88,6 +125,8 @@ class ManipulationImage
     {
         foreach ($this->sizes as $folderSize => $size) {
             if ($size['width'] || $size['height']) {
+
+                $this->deleteOld($folderSize);
 
                 if ($action === 'crop') {
                     $this->cropImage($folderSize, $size);
@@ -128,6 +167,18 @@ class ManipulationImage
          * Check if exist folder if not exist create folder
          */
         $this->checkOrCreateFolder($this->getFolder($folderSize));
+
+        if ($this->blur) {
+            $image->blur($this->blur);
+        }
+
+        if ($this->brightness) {
+            $image->brightness($this->brightness);
+        }
+
+        if ($this->greyscale) {
+            $image->greyscale();
+        }
 
         /**
          * Save cropped image
@@ -197,6 +248,18 @@ class ManipulationImage
          */
         $this->checkOrCreateFolder($this->getFolder($folderSize));
 
+        if ($this->blur) {
+            $image->blur($this->blur);
+        }
+
+        if ($this->brightness) {
+            $image->brightness($this->brightness);
+        }
+
+        if ($this->greyscale) {
+            $image->greyscale();
+        }
+
         /**
          * Save resize
          */
@@ -219,8 +282,15 @@ class ManipulationImage
             Storage::disk($this->disk)->makeDirectory($folder);
     }
 
-    public function checkExist($path): bool
+    private function checkExist($path): bool
     {
         return Storage::disk($this->disk)->exists($path);
+    }
+
+    private function deleteOld(string $folder)
+    {
+        if ($this->overwrite) {
+            Storage::disk($this->disk)->delete($this->getFolder($folder) . '/' . $this->overwrite);
+        }
     }
 }
