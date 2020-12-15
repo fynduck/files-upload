@@ -89,7 +89,7 @@ class UploadFile
         return $this;
     }
 
-    public function setBackground(string $bg): UploadFile
+    public function setBackground(?string $bg): UploadFile
     {
         $this->background = $bg;
 
@@ -110,7 +110,7 @@ class UploadFile
         return $this;
     }
 
-    public function setGreyscale(): UploadFile
+    public function setGreyscale(bool $greyscale = true): UploadFile
     {
         $this->greyscale = true;
 
