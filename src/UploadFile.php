@@ -75,7 +75,7 @@ class UploadFile
         return $this;
     }
 
-    public function setOverwrite(string $overwrite): UploadFile
+    public function setOverwrite(?string $overwrite): UploadFile
     {
         $this->overwrite = $overwrite;
 

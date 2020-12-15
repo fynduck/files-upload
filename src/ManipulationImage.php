@@ -96,7 +96,6 @@ class ManipulationImage
         return $this;
     }
 
-
     public function setGreyscale(bool $greyscale = true): ManipulationImage
     {
         $this->greyscale = $greyscale;
