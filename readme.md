@@ -26,7 +26,7 @@ UploadFile::file($request->file('file')) //or $request->get('base64'), required
     ->setExtension('png') //(optional) default use file extension
     ->setBackground('#000000') //optional
     ->setBlur() //optional, use values between 0 and 100
-    ->setBrightness() //optional, use values between -100 for min. brightness 0 for no change and +100 for max
+    ->setBrightness() //optional, use values between -100 and +100. brightness 0 for no change
     ->setGreyscale() //optional
     ->save();
 ```
@@ -44,7 +44,7 @@ ManipulationImage::load($pathImage)
             ->setOverwrite('old_name.jpg') //optional, remove file with old name
             ->setBackground('#000000') //optional
             ->setBlur() //optional, use values between 0 and 100
-            ->setBrightness() //optional, use values between -100 for min. brightness 0 for no change and +100 for max
+            ->setBrightness() //optional, use values between -100 and +100. brightness 0 for no change
             ->setGreyscale() //optional
             ->save();
 ```
