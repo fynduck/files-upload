@@ -17,6 +17,8 @@ class ManipulationImage
 
     protected $folder;
 
+    protected $formats = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
+
     protected $actions = ['resize', 'crop'];
 
     protected $disk = 'public';
@@ -115,6 +117,13 @@ class ManipulationImage
 
         if (!$this->fileName) {
             throw new \Error('Filename is required');
+        }
+
+        $explodedImage = explode('.', $this->fileName);
+        $extension = array_pop($explodedImage);
+
+        if (!in_array($extension, $this->formats)) {
+            throw new \Error("Format '$extension' is not supported");
         }
 
         $this->action($action);

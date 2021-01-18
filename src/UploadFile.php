@@ -127,6 +127,17 @@ class UploadFile
         return (bool)preg_match("/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).base64,.*/", $this->file);
     }
 
+    private function is_svg(): bool
+    {
+        if (strpos($this->extension, 'svg') !== false) {
+            $this->extension = 'svg';
+
+            return true;
+        }
+
+        return false;
+    }
+
     private function decodeBase64()
     {
         [$type, $this->file] = explode(';', $this->file);
@@ -162,7 +173,7 @@ class UploadFile
 
         $pathImage = Storage::disk($this->disk)->path($this->getPathFile());
 
-        if ($this->sizes) {
+        if ($this->sizes && !$this->is_svg()) {
             ManipulationImage::load($pathImage)
                 ->setSizes($this->sizes)
                 ->setFolder($this->folder)
