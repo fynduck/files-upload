@@ -129,11 +129,8 @@ class UploadFile
 
     private function is_svg(): bool
     {
-        if (strpos($this->extension, 'svg') !== false) {
-            $this->extension = 'svg';
-
+        if (strpos($this->extension, 'svg') !== false)
             return true;
-        }
 
         return false;
     }
@@ -156,7 +153,12 @@ class UploadFile
 
     private function getFullName(): string
     {
-        return "$this->name.$this->extension";
+        $extension = $this->extension;
+
+        if ($this->is_svg())
+            $extension = 'svg';
+
+        return "$this->name.$extension";
     }
 
     public function save(string $action = 'resize'): string
