@@ -4,6 +4,7 @@ namespace Fynduck\FilesUpload;
 
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
+use Spatie\ImageOptimizer\OptimizerChainFactory;
 
 class ManipulationImage
 {
@@ -19,7 +20,7 @@ class ManipulationImage
 
     protected $formats = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
 
-    protected $actions = ['resize', 'crop'];
+    protected $actions = ['resize', 'resize-crop', 'crop'];
 
     protected $disk = 'public';
 
@@ -31,6 +32,8 @@ class ManipulationImage
 
     protected $greyscale;
 
+    protected $optimize;
+
     public static function load(string $pathImage): ManipulationImage
     {
         return new static($pathImage);
@@ -39,7 +42,6 @@ class ManipulationImage
     public function __construct(string $pathImage)
     {
         $this->pathImage = $pathImage;
-
     }
 
     public function setDisk(string $disk): ManipulationImage
@@ -105,7 +107,14 @@ class ManipulationImage
         return $this;
     }
 
-    public function save(string $action = 'resize')
+    public function setOptimize(bool $optimize = true): ManipulationImage
+    {
+        $this->optimize = $optimize;
+
+        return $this;
+    }
+
+    public function save(string $action = 'resize-crop')
     {
         if (!in_array($action, $this->actions)) {
             throw new \Error('Action does\'t exist');
@@ -133,13 +142,18 @@ class ManipulationImage
     {
         foreach ($this->sizes as $folderSize => $size) {
             if ($size['width'] || $size['height']) {
-
                 $this->deleteOld($folderSize);
 
-                if ($action === 'crop') {
-                    $this->cropImage($folderSize, $size);
-                } else if ($action === 'resize') {
-                    $this->resizeImage($folderSize, $size);
+                switch ($action) {
+                    case 'crop':
+                        $this->cropImage($folderSize, $size);
+                        break;
+                    case 'resize-crop':
+                        $this->resizeCropImage($folderSize, $size);
+                        break;
+                    case 'resize':
+                        $this->resizeImage($folderSize, $size);
+                        break;
                 }
             }
         }
@@ -163,10 +177,11 @@ class ManipulationImage
         if ($size['width'] && $size['height']) {
             $image->crop($size['width'], $size['height']);
         } else {
-            if ($size['width'])
+            if ($size['width']) {
                 $image->widen($size['width']);
-            else
+            } else {
                 $image->heighten($size['height']);
+            }
         }
 
         $folderSave = $this->diskFolder() . $this->getFolder($folderSize);
@@ -188,10 +203,14 @@ class ManipulationImage
             $image->greyscale();
         }
 
+        $imagePath = $folderSave . '/' . $this->fileName;
+
         /**
          * Save cropped image
          */
-        $image->save($folderSave . '/' . $this->fileName);
+        $image->save($imagePath);
+
+        $this->optimize($imagePath);
     }
 
     /**
@@ -214,15 +233,100 @@ class ManipulationImage
          */
         if ($size['width'] && $size['height']) {
             if (($widthImg / $size['width']) > ($heightImg / $size['height'])) {
-                $image->resize($size['width'], null, function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                });
+                $image->resize(
+                    $size['width'],
+                    null,
+                    function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize();
+                    }
+                );
             } else {
-                $image->resize(null, $size['height'], function ($constraint) {
+                $image->resize(
+                    null,
+                    $size['height'],
+                    function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize();
+                    }
+                );
+            }
+        } else {
+            $image->resize(
+                $size['width'],
+                $size['height'],
+                function ($constraint) {
                     $constraint->aspectRatio();
                     $constraint->upsize();
-                });
+                }
+            );
+        }
+
+        $folderSave = $this->diskFolder() . $this->getFolder($folderSize);
+
+        /**
+         * Check if exist folder if not exist create folder
+         */
+        $this->checkOrCreateFolder($this->getFolder($folderSize));
+
+        if ($this->blur) {
+            $image->blur($this->blur);
+        }
+
+        if ($this->brightness) {
+            $image->brightness($this->brightness);
+        }
+
+        if ($this->greyscale) {
+            $image->greyscale();
+        }
+
+        $imagePath = $folderSave . '/' . $this->fileName;
+        /**
+         * Save resize
+         */
+        $image->save($imagePath);
+
+        $this->optimize($imagePath);
+    }
+
+    /**
+     * Resize && crop image
+     * @param $folderSize
+     * @param $size
+     */
+    private function resizeCropImage($folderSize, $size)
+    {
+        /**
+         * Get original image
+         */
+        $image = Image::make($this->pathImage);
+
+        $widthImg = $image->width();
+        $heightImg = $image->height();
+
+        /**
+         * Verify width / height for crop
+         */
+        if ($size['width'] && $size['height']) {
+            if (($widthImg / $size['width']) > ($heightImg / $size['height'])) {
+                $image->resize(
+                    $size['width'],
+                    null,
+                    function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize();
+                    }
+                );
+            } else {
+                $image->resize(
+                    null,
+                    $size['height'],
+                    function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize();
+                    }
+                );
             }
 
             /**
@@ -231,10 +335,14 @@ class ManipulationImage
             $widthImg = $size['width'];
             $heightImg = $size['height'];
         } else {
-            $image->resize($size['width'], $size['height'], function ($constraint) {
-                $constraint->aspectRatio();
-                $constraint->upsize();
-            });
+            $image->resize(
+                $size['width'],
+                $size['height'],
+                function ($constraint) {
+                    $constraint->aspectRatio();
+                    $constraint->upsize();
+                }
+            );
 
             /**
              * Set final size image
@@ -268,10 +376,22 @@ class ManipulationImage
             $image->greyscale();
         }
 
+        $imagePath = $folderSave . '/' . $this->fileName;
         /**
          * Save resize
          */
-        $image->save($folderSave . '/' . $this->fileName);
+        $image->save($imagePath);
+
+        $this->optimize($imagePath);
+    }
+
+    public function optimize($imagePath)
+    {
+        if ($this->optimize) {
+            $optimizerChain = OptimizerChainFactory::create();
+
+            $optimizerChain->optimize($imagePath);
+        }
     }
 
     private function diskFolder()
@@ -286,8 +406,9 @@ class ManipulationImage
 
     private function checkOrCreateFolder(string $folder)
     {
-        if (!$this->checkExist($folder))
+        if (!$this->checkExist($folder)) {
             Storage::disk($this->disk)->makeDirectory($folder);
+        }
     }
 
     private function checkExist($path): bool

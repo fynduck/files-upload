@@ -25,10 +25,11 @@ UploadFile::file($request->file('file')) //or $request->get('base64'), required
     ->setSizes(['xs' => ['width' => 100, 'height' => 100]]) //(optional) if need other sizes
     ->setExtension('png') //(optional) default use file extension
     ->setBackground('#000000') //optional
-    ->setBlur() //optional, use values between 0 and 100
-    ->setBrightness() //optional, use values between -100 and +100. brightness 0 for no change
-    ->setGreyscale() //optional
-    ->save();
+    ->setBlur(0) //optional, use values between 0 and 100
+    ->setBrightness(0) //optional, use values between -100 and +100. brightness 0 for no change
+    ->setGreyscale(true) //optional true or false default is true
+    ->setOptimize() //optional
+    ->save('resize'); //save option resize, resize-crop, crop default is resize
 ```
 
 **Make new sizes from image**
@@ -43,11 +44,26 @@ ManipulationImage::load($pathImage)
             ->setName('image_name.jpg') //name with extension
             ->setOverwrite('old_name.jpg') //optional, remove file with old name
             ->setBackground('#000000') //optional
-            ->setBlur() //optional, use values between 0 and 100
-            ->setBrightness() //optional, use values between -100 and +100. brightness 0 for no change
-            ->setGreyscale() //optional
-            ->save();
+            ->setBlur(0) //optional, use values between 0 and 100
+            ->setBrightness(0) //optional, use values between -100 and +100. brightness 0 for no change
+            ->setGreyscale(true) //optional true or false default is true
+            ->setOptimize() //optional
+            ->save('resize'); //save option resize, resize-crop, crop default is resize
 ```
+
+**Optimize exist image**
+
+```php
+use Fynduck\FilesUpload\ManipulationImage;
+
+ManipulationImage::load('')
+            ->setOptimize()
+            ->optimize($pathImage);
+```
+
+> **resize**: Resize the image by the minimum width or height
+> **resize-crop**: Resize the image by the minimum width or height of the side and crop to the center  
+> **crop**: Cut out by size part of the current image with given width and height
 
 ## For laravel < 5.7 use version 1.8
 

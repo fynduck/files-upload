@@ -5,6 +5,7 @@ namespace Fynduck\FilesUpload;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Spatie\ImageOptimizer\OptimizerChainFactory;
 
 class UploadFile
 {
@@ -36,6 +37,8 @@ class UploadFile
     protected $brightness;
 
     protected $greyscale = false;
+
+    protected $optimize;
 
     public static function file($file): UploadFile
     {
@@ -103,7 +106,7 @@ class UploadFile
         return $this;
     }
 
-    public function setBrightness(int $brightness): UploadFile
+    public function setBrightness(?int $brightness): UploadFile
     {
         $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;
 
@@ -115,6 +118,22 @@ class UploadFile
         $this->greyscale = true;
 
         return $this;
+    }
+
+    public function setOptimize(bool $optimize = true): UploadFile
+    {
+        $this->optimize = $optimize;
+
+        return $this;
+    }
+
+    private function optimize($imagePath)
+    {
+        if ($this->optimize) {
+            $optimizerChain = OptimizerChainFactory::create();
+
+            $optimizerChain->optimize($imagePath);
+        }
     }
 
     private function is_uploaded(): bool
@@ -129,8 +148,9 @@ class UploadFile
 
     private function is_svg(): bool
     {
-        if (strpos($this->extension, 'svg') !== false)
+        if (strpos($this->extension, 'svg') !== false) {
             return true;
+        }
 
         return false;
     }
@@ -140,8 +160,9 @@ class UploadFile
         [$type, $this->file] = explode(';', $this->file);
         [, $this->file] = explode(',', $this->file);
 
-        if (!$this->extension)
+        if (!$this->extension) {
             $this->extension = explode('/', $type)[1];
+        }
 
         $this->file = base64_decode($this->file);
     }
@@ -155,13 +176,14 @@ class UploadFile
     {
         $extension = $this->extension;
 
-        if ($this->is_svg())
+        if ($this->is_svg()) {
             $extension = 'svg';
+        }
 
         return "$this->name.$extension";
     }
 
-    public function save(string $action = 'resize'): string
+    public function save(string $action = 'resize-crop'): string
     {
         $this->deleteOld();
 
@@ -185,8 +207,11 @@ class UploadFile
                 ->setBlur($this->blur)
                 ->setBrightness($this->brightness)
                 ->setGreyscale($this->greyscale)
+                ->setOptimize($this->optimize)
                 ->save($action);
         }
+
+        $this->optimize($pathImage);
 
         return $this->getFullName();
     }
@@ -239,8 +264,9 @@ class UploadFile
         /**
          * Verify if exist file of this name, if exist change file name
          */
-        if (Storage::disk($this->disk)->exists($path))
+        if (Storage::disk($this->disk)->exists($path)) {
             $fileName .= '_' . Str::random(8);
+        }
 
         $this->name = $fileName;
     }
