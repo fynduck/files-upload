@@ -115,7 +115,7 @@ class UploadFile
 
     public function setGreyscale(bool $greyscale = true): UploadFile
     {
-        $this->greyscale = true;
+        $this->greyscale = $greyscale;
 
         return $this;
     }
