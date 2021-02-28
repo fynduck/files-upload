@@ -100,14 +100,14 @@ class ManipulationImage
         return $this;
     }
 
-    public function setGreyscale(bool $greyscale = true): ManipulationImage
+    public function setGreyscale(?bool $greyscale = true): ManipulationImage
     {
         $this->greyscale = $greyscale;
 
         return $this;
     }
 
-    public function setOptimize(bool $optimize = true): ManipulationImage
+    public function setOptimize(?bool $optimize = true): ManipulationImage
     {
         $this->optimize = $optimize;
 
