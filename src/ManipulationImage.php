@@ -14,6 +14,8 @@ class ManipulationImage
 
     protected $fileName;
 
+    protected $extension;
+
     protected $overwrite;
 
     protected $folder;
@@ -33,6 +35,10 @@ class ManipulationImage
     protected $greyscale;
 
     protected $optimize;
+
+    protected $encode = null;
+
+    protected $quality;
 
     public static function load(string $pathImage): ManipulationImage
     {
@@ -60,7 +66,17 @@ class ManipulationImage
 
     public function setName(string $name): ManipulationImage
     {
-        $this->fileName = $name;
+        $explodedFileName = explode('.', $name);
+        $extension = array_pop($explodedFileName);
+
+        if (in_array($extension, $this->formats)) {
+            $this->extension = $extension;
+            $this->fileName = implode('_', $explodedFileName);
+        } else {
+            $this->extension = $this->formats[0];
+            $this->encode = $this->extension;
+            $this->fileName = $name;
+        }
 
         return $this;
     }
@@ -114,6 +130,27 @@ class ManipulationImage
         return $this;
     }
 
+    public function setEncodeFormat(?string $encode = null): ManipulationImage
+    {
+        if ($encode && in_array($encode, $this->formats)) {
+            $this->encode = $encode;
+            $this->extension = $encode;
+        }
+
+        return $this;
+    }
+
+    public function setEncodeQuality(?int $quality = 90): ManipulationImage
+    {
+        if ($quality >= 0 && $quality <= 100) {
+            $this->quality = $quality;
+        } else {
+            $this->quality = 90;
+        }
+
+        return $this;
+    }
+
     public function save(string $action = 'resize-crop')
     {
         if (!in_array($action, $this->actions)) {
@@ -128,11 +165,8 @@ class ManipulationImage
             throw new \Error('Filename is required');
         }
 
-        $explodedImage = explode('.', $this->fileName);
-        $extension = array_pop($explodedImage);
-
-        if (!in_array($extension, $this->formats)) {
-            throw new \Error("Format '$extension' is not supported");
+        if (!in_array($this->extension, $this->formats)) {
+            throw new \Error("Format '$this->extension' is not supported");
         }
 
         $this->action($action);
@@ -203,7 +237,11 @@ class ManipulationImage
             $image->greyscale();
         }
 
-        $imagePath = $folderSave . '/' . $this->fileName;
+        if ($this->encode) {
+            $image->encode($this->encode, $this->quality);
+        }
+
+        $imagePath = $this->generateImagePath($folderSave);
 
         /**
          * Save cropped image
@@ -281,7 +319,11 @@ class ManipulationImage
             $image->greyscale();
         }
 
-        $imagePath = $folderSave . '/' . $this->fileName;
+        if ($this->encode) {
+            $image->encode($this->encode, $this->quality);
+        }
+
+        $imagePath = $this->generateImagePath($folderSave);
         /**
          * Save resize
          */
@@ -376,7 +418,11 @@ class ManipulationImage
             $image->greyscale();
         }
 
-        $imagePath = $folderSave . '/' . $this->fileName;
+        if ($this->encode) {
+            $image->encode($this->encode, $this->quality);
+        }
+
+        $imagePath = $this->generateImagePath($folderSave);
         /**
          * Save resize
          */
@@ -421,5 +467,10 @@ class ManipulationImage
         if ($this->overwrite) {
             Storage::disk($this->disk)->delete($this->getFolder($folder) . '/' . $this->overwrite);
         }
+    }
+
+    private function generateImagePath(string $imgFolder): string
+    {
+        return "$imgFolder/$this->fileName.$this->extension";
     }
 }

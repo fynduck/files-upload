@@ -28,6 +28,8 @@ class UploadFile
 
     protected $manipulationImage;
 
+    protected $formats = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
+
     protected $sizes = [];
 
     protected $background = null;
@@ -39,6 +41,10 @@ class UploadFile
     protected $greyscale = false;
 
     protected $optimize;
+
+    protected $encode = null;
+
+    protected $quality;
 
     public static function file($file): UploadFile
     {
@@ -127,6 +133,26 @@ class UploadFile
         return $this;
     }
 
+    public function setEncodeFormat(?string $encode = null): UploadFile
+    {
+        if ($encode && in_array($encode, $this->formats)) {
+            $this->encode = $encode;
+        }
+
+        return $this;
+    }
+
+    public function setEncodeQuality(?int $quality = 90): UploadFile
+    {
+        if ($quality >= 0 && $quality <= 100) {
+            $this->quality = $quality;
+        } else {
+            $this->quality = 90;
+        }
+
+        return $this;
+    }
+
     private function optimize($imagePath)
     {
         if ($this->optimize) {
@@ -172,9 +198,13 @@ class UploadFile
         return $this->folder . '/' . $this->getFullName();
     }
 
-    private function getFullName(): string
+    private function getFullName(bool $resize = false): string
     {
         $extension = $this->extension;
+
+        if ($resize && $this->encode) {
+            $extension = $this->encode;
+        }
 
         if ($this->is_svg()) {
             $extension = 'svg';
@@ -201,19 +231,21 @@ class UploadFile
             ManipulationImage::load($pathImage)
                 ->setSizes($this->sizes)
                 ->setFolder($this->folder)
-                ->setName($this->getFullName())
+                ->setName($this->getFullName(true))
                 ->setOverwrite($this->overwrite)
                 ->setBackground($this->background)
                 ->setBlur($this->blur)
                 ->setBrightness($this->brightness)
                 ->setGreyscale($this->greyscale)
                 ->setOptimize($this->optimize)
+                ->setEncodeFormat($this->encode)
+                ->setEncodeQuality($this->quality)
                 ->save($action);
         }
 
         $this->optimize($pathImage);
 
-        return $this->getFullName();
+        return $this->getFullName(true);
     }
 
     private function deleteOld()
