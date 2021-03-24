@@ -300,6 +300,13 @@ class UploadFile
             $fileName .= '_' . Str::random(8);
         }
 
+        /**
+         * add extension prefix to name
+         */
+        if ($this->encode) {
+            $fileName = $this->extension . '_' . $fileName;
+        }
+
         $this->name = $fileName;
     }
 }
