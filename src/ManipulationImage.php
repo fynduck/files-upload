@@ -3,6 +3,7 @@
 namespace Fynduck\FilesUpload;
 
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Intervention\Image\Facades\Image;
 use Spatie\ImageOptimizer\OptimizerChainFactory;
 
@@ -67,13 +68,13 @@ class ManipulationImage
     public function setName(string $name): ManipulationImage
     {
         $explodedFileName = explode('.', $name);
-        $extension = array_pop($explodedFileName);
+        $extension = Str::lower(array_pop($explodedFileName));
 
         if (in_array($extension, $this->formats)) {
             $this->extension = $extension;
             $this->fileName = implode('_', $explodedFileName);
         } else {
-            $this->extension = $this->formats[0];
+            $this->extension = Str::lower($this->formats[0]);
             $this->encode = $this->extension;
             $this->fileName = $name;
         }
@@ -111,7 +112,7 @@ class ManipulationImage
 
     public function setBrightness(?int $brightness): ManipulationImage
     {
-        $this->brightness = $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;;
+        $this->brightness = $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;
 
         return $this;
     }
@@ -132,6 +133,8 @@ class ManipulationImage
 
     public function setEncodeFormat(?string $encode = null): ManipulationImage
     {
+        $encode = Str::lower($encode);
+
         if ($encode && in_array($encode, $this->formats)) {
             $this->encode = $encode;
             $this->extension = $encode;
@@ -187,6 +190,8 @@ class ManipulationImage
                         break;
                     case 'resize':
                         $this->resizeImage($folderSize, $size);
+                        break;
+                    default:
                         break;
                 }
             }
@@ -396,8 +401,7 @@ class ManipulationImage
         /**
          * Add background if width || height less than new resize
          */
-        $background = Image::canvas($widthImg, $heightImg, $this->background);
-        $image = $background->insert($image, 'center');
+        $image = Image::canvas($widthImg, $heightImg, $this->background)->insert($image, 'center');
 
         $folderSave = $this->diskFolder() . $this->getFolder($folderSize);
 

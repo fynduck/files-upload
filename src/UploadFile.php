@@ -135,7 +135,7 @@ class UploadFile
 
     public function setEncodeFormat(?string $encode = null): UploadFile
     {
-        if ($encode && in_array($encode, $this->formats)) {
+        if ($encode && in_array(Str::lower($encode), $this->formats)) {
             $this->encode = $encode;
         }
 
