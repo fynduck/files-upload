@@ -2,6 +2,8 @@
 
 namespace Fynduck\FilesUpload;
 
+use Fynduck\FilesUpload\Traits\CheckFile;
+use Fynduck\FilesUpload\Traits\GenerateData;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -9,6 +11,9 @@ use Spatie\ImageOptimizer\OptimizerChainFactory;
 
 class UploadFile
 {
+    use CheckFile;
+    use GenerateData;
+
     /**
      * @var UploadedFile|string
      */
@@ -56,6 +61,10 @@ class UploadFile
         $this->file = $file;
     }
 
+    /**
+     * @param string $disk
+     * @return $this
+     */
     public function setDisk(string $disk): UploadFile
     {
         $this->disk = $disk;
@@ -63,6 +72,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param string $folder
+     * @return $this
+     */
     public function setFolder(string $folder): UploadFile
     {
         $this->folder = $folder;
@@ -70,6 +83,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param string $name
+     * @return $this
+     */
     public function setName(string $name): UploadFile
     {
         $this->name = $name;
@@ -77,6 +94,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param string $extension
+     * @return $this
+     */
     public function setExtension(string $extension): UploadFile
     {
         $this->extension = $extension;
@@ -84,6 +105,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param string|null $overwrite
+     * @return $this
+     */
     public function setOverwrite(?string $overwrite): UploadFile
     {
         $this->overwrite = $overwrite;
@@ -91,6 +116,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param array $sizes
+     * @return $this
+     */
     public function setSizes(array $sizes): UploadFile
     {
         $this->sizes = $sizes;
@@ -98,6 +127,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param string|null $bg
+     * @return $this
+     */
     public function setBackground(?string $bg): UploadFile
     {
         $this->background = $bg;
@@ -105,6 +138,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param int $blur
+     * @return $this
+     */
     public function setBlur(int $blur = 1): UploadFile
     {
         $this->blur = $blur >= 0 ? $blur : null;
@@ -112,6 +149,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param int|null $brightness
+     * @return $this
+     */
     public function setBrightness(?int $brightness): UploadFile
     {
         $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;
@@ -119,6 +160,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param bool $greyscale
+     * @return $this
+     */
     public function setGreyscale(bool $greyscale = true): UploadFile
     {
         $this->greyscale = $greyscale;
@@ -126,6 +171,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param bool $optimize
+     * @return $this
+     */
     public function setOptimize(bool $optimize = true): UploadFile
     {
         $this->optimize = $optimize;
@@ -133,6 +182,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param string|null $encode
+     * @return $this
+     */
     public function setEncodeFormat(?string $encode = null): UploadFile
     {
         if ($encode && in_array(Str::lower($encode), $this->formats)) {
@@ -142,6 +195,10 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * @param int|null $quality
+     * @return $this
+     */
     public function setEncodeQuality(?int $quality = 90): UploadFile
     {
         if ($quality >= 0 && $quality <= 100) {
@@ -153,6 +210,11 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * Optimise image
+     * @param $imagePath
+     * @return void
+     */
     private function optimize($imagePath)
     {
         if ($this->optimize) {
@@ -162,57 +224,10 @@ class UploadFile
         }
     }
 
-    private function is_uploaded(): bool
-    {
-        return is_uploaded_file($this->file);
-    }
-
-    private function is_base64(): bool
-    {
-        return (bool)preg_match("/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).base64,.*/", $this->file);
-    }
-
-    private function is_svg(): bool
-    {
-        if (strpos($this->extension, 'svg') !== false) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private function decodeBase64()
-    {
-        [$type, $this->file] = explode(';', $this->file);
-        [, $this->file] = explode(',', $this->file);
-
-        if (!$this->extension) {
-            $this->extension = explode('/', $type)[1];
-        }
-
-        $this->file = base64_decode($this->file);
-    }
-
-    private function getPathFile(): string
-    {
-        return $this->folder . '/' . $this->getFullName();
-    }
-
-    private function getFullName(bool $resize = false): string
-    {
-        $extension = $this->extension;
-
-        if ($resize && $this->encode) {
-            $extension = $this->encode;
-        }
-
-        if ($this->is_svg()) {
-            $extension = 'svg';
-        }
-
-        return "$this->name.$extension";
-    }
-
+    /**
+     * @param string $action
+     * @return string
+     */
     public function save(string $action = 'resize-crop'): string
     {
         $this->deleteOld();
@@ -248,65 +263,13 @@ class UploadFile
         return $this->getFullName(true);
     }
 
+    /**
+     * Delete old image
+     */
     private function deleteOld()
     {
         if ($this->overwrite) {
             Storage::disk($this->disk)->delete($this->folder . '/' . $this->overwrite);
         }
-    }
-
-    private function generateNameFile()
-    {
-        $fileName = $this->name;
-
-        /**
-         * extract extension if not defined
-         */
-        if (!$this->extension) {
-            if ($this->is_uploaded()) {
-                $this->extension = $this->file->getClientOriginalExtension();
-            } else {
-                $this->decodeBase64();
-            }
-        }
-
-        /**
-         * extract name if not defined
-         */
-        if (!$this->name) {
-            if ($this->is_uploaded()) {
-                $fileName .= '_' . $this->file->getClientOriginalName();
-            } else {
-                $fileName .= '_' . Str::random();
-            }
-        }
-
-        /**
-         * replace prohibited symbols
-         */
-        $pattern = ['/\s+/', '/,/'];
-        $replace = ['_', '_'];
-        $fileName = preg_replace($pattern, $replace, $fileName);
-
-        $fileName = Str::slug($fileName, '_');
-
-        $path = $this->folder ? $this->folder . '/' : '';
-        $path .= $fileName . '.' . $this->extension;
-
-        /**
-         * Verify if exist file of this name, if exist change file name
-         */
-        if (Storage::disk($this->disk)->exists($path)) {
-            $fileName .= '_' . Str::random(8);
-        }
-
-        /**
-         * add extension prefix to name
-         */
-        if ($this->encode) {
-            $fileName = $this->extension . '_' . $fileName;
-        }
-
-        $this->name = $fileName;
     }
 }
