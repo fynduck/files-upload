@@ -234,10 +234,14 @@ class UploadFile
 
         $this->generateNameFile();
 
-        if ($this->is_uploaded()) {
-            Storage::disk($this->disk)->putFileAs($this->folder, $this->file, $this->getFullName());
-        } else {
+        if ($this->is_base64() || $this->is_svg()) {
             Storage::disk($this->disk)->put($this->getPathFile(), $this->file);
+        } else if ($this->is_uploaded()) {
+            Storage::disk($this->disk)->putFileAs($this->folder, $this->file, $this->getFullName());
+        }
+
+        if (!$this->is_base64() && !$this->is_svg() && !$this->is_uploaded()) {
+            return '';
         }
 
         $pathImage = Storage::disk($this->disk)->path($this->getPathFile());
