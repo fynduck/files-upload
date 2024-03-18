@@ -232,16 +232,16 @@ class UploadFile
     {
         $this->deleteOld();
 
-        $this->generateNameFile();
-
-        if ($this->is_base64() || $this->is_svg()) {
-            Storage::disk($this->disk)->put($this->getPathFile(), $this->file);
-        } else if ($this->is_uploaded()) {
-            Storage::disk($this->disk)->putFileAs($this->folder, $this->file, $this->getFullName());
-        }
-
         if (!$this->is_base64() && !$this->is_svg() && !$this->is_uploaded()) {
             return '';
+        }
+
+        if ($this->is_base64() || $this->is_svg()) {
+            $this->generateNameFile();
+            Storage::disk($this->disk)->put($this->getPathFile(), $this->file);
+        } else if ($this->is_uploaded()) {
+            $this->generateNameFile();
+            Storage::disk($this->disk)->putFileAs($this->folder, $this->file, $this->getFullName());
         }
 
         $pathImage = Storage::disk($this->disk)->path($this->getPathFile());

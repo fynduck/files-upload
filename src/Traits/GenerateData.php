@@ -19,10 +19,10 @@ trait GenerateData
          * extract extension if not defined
          */
         if (!$this->extension) {
-            if ($this->is_uploaded()) {
-                $this->setExtension($this->file->getClientOriginalExtension());
-            } else if($this->is_base64()){
+            if ($this->is_base64()) {
                 $this->decodeBase64();
+            } else if ($this->is_uploaded()) {
+                $this->setExtension($this->file->getClientOriginalExtension());
             }
         }
 
