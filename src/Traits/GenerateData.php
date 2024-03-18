@@ -30,7 +30,7 @@ trait GenerateData
          * extract name if not defined
          */
         if (!$fileName) {
-            if ($this->is_uploaded()) {
+            if (!$this->is_base64() && !$this->is_svg() && $this->is_uploaded()) {
                 $fileName .= '_' . $this->file->getClientOriginalName();
             } else {
                 $fileName .= '_' . Str::random();
