@@ -446,7 +446,7 @@ class ManipulationImage
 
     private function diskFolder()
     {
-        return Storage::disk($this->disk)->getDriver()->getAdapter()->getPathPrefix();
+        return Storage::disk($this->disk)->path('');
     }
 
     private function getFolder($folder): string
