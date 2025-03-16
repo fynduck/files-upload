@@ -1,14 +1,15 @@
 <?php
 
-
 namespace Fynduck\FilesUpload\Tests\Unit;
 
 use Fynduck\FilesUpload\UploadFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Spatie\LaravelImageOptimizer\ImageOptimizerServiceProvider;
+use Intervention\Image\Laravel\ServiceProvider;
 
-class UploadFIleTest extends Orchestra
+class UploadFileTest extends Orchestra
 {
     public static $latestResponse;
 
@@ -16,6 +17,21 @@ class UploadFIleTest extends Orchestra
     {
         parent::tearDownAfterClass();
         self::$latestResponse = null;
+    }
+
+    protected function getPackageProviders($app)
+    {
+        return [
+            ImageOptimizerServiceProvider::class,
+            ServiceProvider::class,
+        ];
+    }
+
+    protected function getPackageAliases($app)
+    {
+        return [
+            'Image' => \Intervention\Image\Laravel\Facades\Image::class,
+        ];
     }
 
     public function test_file_uploads_successfully()
@@ -86,8 +102,7 @@ class UploadFIleTest extends Orchestra
     public function test_file_uploads_with_base64()
     {
         $file = UploadedFile::fake()->image('test.jpg');
-
-        $base64 = 'data:image/jpeg;base64,' . base64_encode(file_get_contents($file));
+        $base64 = 'data:image/jpeg;base64,'.base64_encode(file_get_contents($file));
         $uploadFile = UploadFile::file($base64)
             ->setDisk('public')
             ->setFolder('uploads')
