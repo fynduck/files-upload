@@ -10,7 +10,7 @@ use Orchestra\Testbench\TestCase as Orchestra;
 
 class UploadFIleTest extends Orchestra
 {
-    protected static $latestResponse;
+    public static $latestResponse;
 
     public static function tearDownAfterClass(): void
     {
