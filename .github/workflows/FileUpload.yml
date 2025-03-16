@@ -14,8 +14,19 @@ jobs:
 
     strategy:
       matrix:
-        php-version: ['8.1', '8.2', '8.3', '8.4']
-        laravel-version: ['9.*', '10.*', '11.*', '12.*']
+        include:
+          - php-version: '8.1'
+            laravel-version: '9.*'
+          - php-version: '8.2'
+            laravel-version: '9.*'
+          - php-version: '8.1'
+            laravel-version: '10.*'
+          - php-version: '8.2'
+            laravel-version: '10.*'
+          - php-version: '8.2'
+            laravel-version: '11.*'
+          - php-version: '8.2'
+            laravel-version: '12.*'
 
     steps:
       - name: Checkout code
@@ -25,6 +36,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
 
       - name: Install dependencies
         run: |
