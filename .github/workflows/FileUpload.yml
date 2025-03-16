@@ -1,0 +1,34 @@
+name: FileUpload
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['8.0', '8.1', '8.2']
+        laravel-version: ['9.*', '10.*', '11.*', '12.*']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+
+      - name: Install dependencies
+        run: composer require "illuminate/support:${{ matrix.laravel-version }}" --no-update
+        run: composer install --prefer-dist --no-progress --no-suggest --no-interaction
+
+      - name: Run tests
+        run: vendor/bin/phpunit
