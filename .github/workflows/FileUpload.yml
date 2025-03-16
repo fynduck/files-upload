@@ -1,0 +1,53 @@
+name: FileUpload
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - php-version: '8.1'
+            laravel-version: '9.*'
+          - php-version: '8.2'
+            laravel-version: '9.*'
+          - php-version: '8.1'
+            laravel-version: '10.*'
+          - php-version: '8.2'
+            laravel-version: '10.*'
+          - php-version: '8.2'
+            laravel-version: '11.*'
+          - php-version: '8.2'
+            laravel-version: '12.*'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: |
+          composer require "illuminate/support:${{ matrix.laravel-version }}" --no-update
+          composer install --prefer-dist --no-progress --no-suggest --no-interaction
+
+      - name: Run tests
+        run: vendor/bin/phpunit
