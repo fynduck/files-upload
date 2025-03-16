@@ -4,11 +4,12 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/fynduck/files-upload.svg?style=flat-square)](https://packagist.org/packages/fynduck/files-upload)
 [![Total Downloads](https://img.shields.io/packagist/dt/fynduck/files-upload.svg?style=flat-square)](https://packagist.org/packages/fynduck/files-upload)
 
-| **Laravel**  |  **files-upload** | **Php version** |
-|---|---|---|
-| ``<`` 5.7   | ``^``1.8  | ``>=``5.6
-| ``>=`` 5.7  | ``^``2.0 | ``>=``5.6
-| ``>=`` 5.7  | ``^``3.0 | ``>=``7.1
+| **Laravel** | **files-upload** | **Php version** |
+|-------------|------------------|-----------------|
+| ``<`` 5.7   | ``^``1.8         | ``>=``5.6       |
+| ``>=`` 5.7  | ``^``2.1         | ``>=``5.6       |
+| 5.7 - 11.0  | ``^``3.1         | ``>=``7.1       |
+| ``>=`` 9.0  | ``^``4.0         | ``>=``8.0       |
 
 ## Usage
 
@@ -27,11 +28,11 @@ UploadFile::file($request->file('file')) //or $request->get('base64'), required
     ->setBackground('#000000') //optional
     ->setBlur(0) //optional, use values between 0 and 100
     ->setBrightness(0) //optional, use values between -100 and +100. brightness 0 for no change
-    ->setGreyscale(true) //optional true or false default is true
-    ->setOptimize() //optional
+    ->setGreyscale(true) //optional true or false default is false
+    ->setOptimize(true) //optional
     ->setEncodeFormat() //optional, ['jpeg', 'jpg', 'png', 'gif', 'webp']
     ->setEncodeQuality() //optional, use values between 0 and 100
-    ->save('resize'); //save option resize, resize-crop, crop default is resize
+    ->save('resize'); //save option resize, crop default is resize
 ```
 
 **Make new sizes from image**
@@ -49,7 +50,7 @@ ManipulationImage::load($pathImage)
             ->setBlur(0) //optional, use values between 0 and 100
             ->setBrightness(0) //optional, use values between -100 and +100. brightness 0 for no change
             ->setGreyscale(true) //optional true or false default is true
-            ->setOptimize() //optional
+            ->setOptimize(true) //optional
             ->setEncodeFormat() //optional, ['jpeg', 'jpg', 'png', 'gif', 'webp']
             ->setEncodeQuality() //optional, use values between 0 and 100
             ->save('resize'); //save option resize, resize-crop, crop default is resize
@@ -60,20 +61,20 @@ ManipulationImage::load($pathImage)
 ```php
 use Fynduck\FilesUpload\ManipulationImage;
 
-ManipulationImage::load('')
-            ->setOptimize()
-            ->optimize($pathImage);
+ManipulationImage::load('image_name.jpg')
+            ->setOptimize(true)
+            ->optimize('path_to_image');
 ```
 
-> **resize**: Resize the image by the minimum width or height
-> **resize-crop**: Resize the image by the minimum width or height of the side and crop to the center  
+> **resize**: Resize the image by the maximum width or height
 > **crop**: Cut out by size part of the current image with given width and height
 
 ## For laravel < 5.7 use version 1.8
 
 ## Use for previous versions
 
-* [Version ^2.0](https://github.com/fynduck/files-upload/tree/2.1.3)
+* [Version ^3.1](https://github.com/fynduck/files-upload/tree/3.1.7)
+* [Version ^2.1](https://github.com/fynduck/files-upload/tree/2.1.3)
 * [Version ^1.8](https://github.com/fynduck/files-upload/tree/1.8.6.2)
 
 ## Install
