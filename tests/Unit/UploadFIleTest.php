@@ -6,10 +6,18 @@ namespace Fynduck\FilesUpload\Tests\Unit;
 use Fynduck\FilesUpload\UploadFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Tests\TestCase;
+use Orchestra\Testbench\TestCase as Orchestra;
 
-class UploadFIleTest extends TestCase
+class UploadFIleTest extends Orchestra
 {
+    protected static $latestResponse;
+
+    public static function tearDownAfterClass(): void
+    {
+        parent::tearDownAfterClass();
+        self::$latestResponse = null;
+    }
+
     public function test_file_uploads_successfully()
     {
         $file = UploadedFile::fake()->image('test.jpg');
