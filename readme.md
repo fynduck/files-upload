@@ -2,6 +2,7 @@
 
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/fynduck/files-upload.svg?style=flat-square)](https://packagist.org/packages/fynduck/files-upload)
+![Tests](https://github.com/fynduck/files-upload/actions/workflows/FileUpload.yml/badge.svg)
 [![Total Downloads](https://img.shields.io/packagist/dt/fynduck/files-upload.svg?style=flat-square)](https://packagist.org/packages/fynduck/files-upload)
 
 | **Laravel** | **files-upload** | **Php version** |
@@ -9,7 +10,7 @@
 | ``<`` 5.7   | ``^``1.8         | ``>=``5.6       |
 | ``>=`` 5.7  | ``^``2.1         | ``>=``5.6       |
 | 5.7 - 11.0  | ``^``3.1         | ``>=``7.1       |
-| ``>=`` 9.0  | ``^``4.0         | ``>=``8.0       |
+| ``>=`` 9.0  | ``^``4.0         | ``>=``8.1       |
 
 ## Usage
 
@@ -66,20 +67,26 @@ ManipulationImage::load('image_name.jpg')
             ->optimize('path_to_image');
 ```
 
+
 > **resize**: Resize the image by the maximum width or height
+> 
 > **crop**: Cut out by size part of the current image with given width and height
 
 ## For laravel < 5.7 use version 1.8
 
-## Use for previous versions
+## Previous stable versions
 
 * [Version ^3.1](https://github.com/fynduck/files-upload/tree/3.1.7)
 * [Version ^2.1](https://github.com/fynduck/files-upload/tree/2.1.3)
 * [Version ^1.8](https://github.com/fynduck/files-upload/tree/1.8.6.2)
 
-## Install
+## Installation
 
-`composer require fynduck/files-upload`
+You can install the package via composer:
+
+```bash
+composer require fynduck/files-upload
+```
 
 ## Contributing
 
