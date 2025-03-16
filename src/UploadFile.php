@@ -7,49 +7,27 @@ use Fynduck\FilesUpload\Traits\GenerateData;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Spatie\ImageOptimizer\OptimizerChainFactory;
+use Spatie\LaravelImageOptimizer\Facades\ImageOptimizer;
 
 class UploadFile
 {
-    use CheckFile;
-    use GenerateData;
+    use CheckFile, GenerateData;
 
-    /**
-     * @var UploadedFile|string
-     */
-    protected $file;
-
-    protected $base64;
-
-    protected $name;
-
-    protected $extension;
-
-    protected $overwrite;
-
-    protected $disk = 'public';
-
-    protected $folder;
-
-    protected $manipulationImage;
-
-    protected $formats = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
-
-    protected $sizes = [];
-
-    protected $background = null;
-
-    protected $blur;
-
-    protected $brightness;
-
-    protected $greyscale = false;
-
-    protected $optimize;
-
-    protected $encode = null;
-
-    protected $quality;
+    protected UploadedFile|string $file;
+    protected string $name;
+    protected string $extension = '';
+    protected ?string $overwrite = null;
+    protected string $disk = 'public';
+    protected string $folder;
+    protected array $formats = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
+    protected array $sizes = [];
+    protected ?string $background = null;
+    protected ?int $blur = null;
+    protected ?int $brightness = null;
+    protected ?bool $greyscale = false;
+    protected ?bool $optimize;
+    protected ?string $encode = null;
+    protected ?int $quality;
 
     public static function file($file): UploadFile
     {
@@ -61,10 +39,6 @@ class UploadFile
         $this->file = $file;
     }
 
-    /**
-     * @param string $disk
-     * @return $this
-     */
     public function setDisk(string $disk): UploadFile
     {
         $this->disk = $disk;
@@ -72,10 +46,6 @@ class UploadFile
         return $this;
     }
 
-    /**
-     * @param string $folder
-     * @return $this
-     */
     public function setFolder(string $folder): UploadFile
     {
         $this->folder = $folder;
@@ -83,10 +53,6 @@ class UploadFile
         return $this;
     }
 
-    /**
-     * @param string $name
-     * @return $this
-     */
     public function setName(string $name): UploadFile
     {
         $this->name = $name;
@@ -94,10 +60,6 @@ class UploadFile
         return $this;
     }
 
-    /**
-     * @param string $extension
-     * @return $this
-     */
     public function setExtension(string $extension): UploadFile
     {
         $this->extension = $extension;
@@ -105,10 +67,6 @@ class UploadFile
         return $this;
     }
 
-    /**
-     * @param string|null $overwrite
-     * @return $this
-     */
     public function setOverwrite(?string $overwrite): UploadFile
     {
         $this->overwrite = $overwrite;
@@ -116,10 +74,6 @@ class UploadFile
         return $this;
     }
 
-    /**
-     * @param array $sizes
-     * @return $this
-     */
     public function setSizes(array $sizes): UploadFile
     {
         $this->sizes = $sizes;
@@ -127,10 +81,6 @@ class UploadFile
         return $this;
     }
 
-    /**
-     * @param string|null $bg
-     * @return $this
-     */
     public function setBackground(?string $bg): UploadFile
     {
         $this->background = $bg;
@@ -138,21 +88,13 @@ class UploadFile
         return $this;
     }
 
-    /**
-     * @param int $blur
-     * @return $this
-     */
-    public function setBlur(int $blur = 1): UploadFile
+    public function setBlur(?int $blur = 1): UploadFile
     {
         $this->blur = $blur >= 0 ? $blur : null;
 
         return $this;
     }
 
-    /**
-     * @param int|null $brightness
-     * @return $this
-     */
     public function setBrightness(?int $brightness): UploadFile
     {
         $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;
@@ -160,21 +102,13 @@ class UploadFile
         return $this;
     }
 
-    /**
-     * @param bool $greyscale
-     * @return $this
-     */
-    public function setGreyscale(bool $greyscale = true): UploadFile
+    public function setGreyscale(bool $greyscale = false): UploadFile
     {
         $this->greyscale = $greyscale;
 
         return $this;
     }
 
-    /**
-     * @param bool $optimize
-     * @return $this
-     */
     public function setOptimize(bool $optimize = true): UploadFile
     {
         $this->optimize = $optimize;
@@ -182,10 +116,6 @@ class UploadFile
         return $this;
     }
 
-    /**
-     * @param string|null $encode
-     * @return $this
-     */
     public function setEncodeFormat(?string $encode = null): UploadFile
     {
         if ($encode && in_array(Str::lower($encode), $this->formats)) {
@@ -195,68 +125,52 @@ class UploadFile
         return $this;
     }
 
-    /**
-     * @param int|null $quality
-     * @return $this
-     */
     public function setEncodeQuality(?int $quality = 90): UploadFile
     {
-        if ($quality >= 0 && $quality <= 100) {
-            $this->quality = $quality;
-        } else {
-            $this->quality = 90;
-        }
+        $this->quality = ($quality && $quality >= 0 && $quality <= 100) ? $quality : 90;
 
         return $this;
     }
 
-    /**
-     * Optimise image
-     * @param $imagePath
-     * @return void
-     */
-    private function optimize($imagePath)
+    private function optimize($imagePath): void
     {
-        if ($this->optimize) {
-            $optimizerChain = OptimizerChainFactory::create();
-
-            $optimizerChain->optimize($imagePath);
+        if ($this->optimize && !$this->sizes && !$this->is_svg()) {
+            ImageOptimizer::optimize($imagePath);
         }
     }
 
-    /**
-     * @param string $action
-     * @return string
-     */
-    public function save(string $action = 'resize-crop'): string
+    public function save(string $action = 'resize'): string
     {
         $this->deleteOld();
+
+        $this->generateNameFile();
 
         if (!$this->is_base64() && !$this->is_svg() && !$this->is_uploaded()) {
             return '';
         }
 
         if ($this->is_base64() || $this->is_svg()) {
-            $this->generateNameFile();
             Storage::disk($this->disk)->put($this->getPathFile(), $this->file);
-        } else if ($this->is_uploaded()) {
-            $this->generateNameFile();
-            Storage::disk($this->disk)->putFileAs($this->folder, $this->file, $this->getFullName());
+        } elseif ($this->is_uploaded()) {
+            Storage::disk($this->disk)
+                ->putFileAs($this->folder, $this->file, $this->getFullName());
         }
 
         $pathImage = Storage::disk($this->disk)->path($this->getPathFile());
 
         if ($this->sizes && !$this->is_svg()) {
             ManipulationImage::load($pathImage)
+                ->setDisk($this->disk)
                 ->setSizes($this->sizes)
                 ->setFolder($this->folder)
-                ->setName($this->getFullName(true))
+                ->setName($this->name)
                 ->setOverwrite($this->overwrite)
                 ->setBackground($this->background)
                 ->setBlur($this->blur)
                 ->setBrightness($this->brightness)
                 ->setGreyscale($this->greyscale)
                 ->setOptimize($this->optimize)
+                ->setExtension($this->extension)
                 ->setEncodeFormat($this->encode)
                 ->setEncodeQuality($this->quality)
                 ->save($action);
@@ -264,16 +178,13 @@ class UploadFile
 
         $this->optimize($pathImage);
 
-        return $this->getFullName(true);
+        return $this->getFullName();
     }
 
-    /**
-     * Delete old image
-     */
-    private function deleteOld()
+    private function deleteOld(): void
     {
         if ($this->overwrite) {
-            Storage::disk($this->disk)->delete($this->folder . '/' . $this->overwrite);
+            Storage::disk($this->disk)->delete($this->folder.'/'.$this->overwrite);
         }
     }
 }

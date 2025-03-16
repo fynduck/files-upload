@@ -4,42 +4,28 @@ namespace Fynduck\FilesUpload;
 
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\Facades\Image;
-use Spatie\ImageOptimizer\OptimizerChainFactory;
+use Intervention\Image\FileExtension;
+use Intervention\Image\Laravel\Facades\Image;
+use Spatie\LaravelImageOptimizer\Facades\ImageOptimizer;
 
 class ManipulationImage
 {
-    protected $pathImage;
-
-    protected $sizes;
-
-    protected $fileName;
-
-    protected $extension;
-
-    protected $overwrite;
-
-    protected $folder;
-
-    protected $formats = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
-
-    protected $actions = ['resize', 'resize-crop', 'crop'];
-
-    protected $disk = 'public';
-
-    protected $background = null;
-
-    protected $blur;
-
-    protected $brightness;
-
-    protected $greyscale;
-
-    protected $optimize;
-
-    protected $encode = null;
-
-    protected $quality;
+    protected string $pathImage;
+    protected array $sizes;
+    protected string $fileName;
+    protected string $extension;
+    protected ?string $overwrite;
+    protected string $folder;
+    protected array $formats = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
+    protected array $actions = ['resize', 'resize-crop', 'crop'];
+    protected string $disk = 'public';
+    protected ?string $background = null;
+    protected ?int $blur;
+    protected ?int $brightness;
+    protected ?bool $greyscale;
+    protected ?bool $optimize;
+    protected ?string $encode = null;
+    protected ?int $quality;
 
     public static function load(string $pathImage): ManipulationImage
     {
@@ -67,17 +53,7 @@ class ManipulationImage
 
     public function setName(string $name): ManipulationImage
     {
-        $explodedFileName = explode('.', $name);
-        $extension = Str::lower(array_pop($explodedFileName));
-
-        if (in_array($extension, $this->formats)) {
-            $this->extension = $extension;
-            $this->fileName = implode('_', $explodedFileName);
-        } else {
-            $this->extension = Str::lower($this->formats[0]);
-            $this->encode = $this->extension;
-            $this->fileName = $name;
-        }
+        $this->fileName = $name;
 
         return $this;
     }
@@ -112,12 +88,12 @@ class ManipulationImage
 
     public function setBrightness(?int $brightness): ManipulationImage
     {
-        $this->brightness = $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;
+        $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;
 
         return $this;
     }
 
-    public function setGreyscale(?bool $greyscale = true): ManipulationImage
+    public function setGreyscale(?bool $greyscale = false): ManipulationImage
     {
         $this->greyscale = $greyscale;
 
@@ -131,10 +107,18 @@ class ManipulationImage
         return $this;
     }
 
+    public function setExtension(string $extension): ManipulationImage
+    {
+        $extension = Str::lower($extension);
+        if (!$this->encode && in_array($extension, $this->formats)) {
+            $this->extension = $extension;
+        }
+        return $this;
+    }
+
     public function setEncodeFormat(?string $encode = null): ManipulationImage
     {
         $encode = Str::lower($encode);
-
         if ($encode && in_array($encode, $this->formats)) {
             $this->encode = $encode;
             $this->extension = $encode;
@@ -145,316 +129,113 @@ class ManipulationImage
 
     public function setEncodeQuality(?int $quality = 90): ManipulationImage
     {
-        if ($quality >= 0 && $quality <= 100) {
-            $this->quality = $quality;
-        } else {
-            $this->quality = 90;
-        }
+        $this->quality = ($quality && $quality >= 0 && $quality <= 100) ? $quality : 90;
 
         return $this;
     }
 
-    public function save(string $action = 'resize-crop')
+    public function save(string $action = 'resize'): void
     {
         if (!in_array($action, $this->actions)) {
             throw new \Error('Action does\'t exist');
         }
-
         if (!$this->sizes) {
             throw new \Error('Sizes is required');
         }
-
         if (!$this->fileName) {
             throw new \Error('Filename is required');
         }
-
         if (!in_array($this->extension, $this->formats)) {
             throw new \Error("Format '$this->extension' is not supported");
         }
-
         $this->action($action);
     }
 
-    private function action($action)
+    private function action($action): void
     {
         foreach ($this->sizes as $folderSize => $size) {
-            if ($size['width'] || $size['height']) {
-                $this->deleteOld($folderSize);
-
-                switch ($action) {
-                    case 'crop':
-                        $this->cropImage($folderSize, $size);
-                        break;
-                    case 'resize-crop':
-                        $this->resizeCropImage($folderSize, $size);
-                        break;
-                    case 'resize':
-                        $this->resizeImage($folderSize, $size);
-                        break;
-                    default:
-                        break;
-                }
+            if (!$size['width'] && !$size['height']) {
+                continue;
+            }
+            $this->deleteOld($folderSize);
+            switch ($action) {
+                case 'crop':
+                    $this->cropImage($folderSize, $size);
+                    break;
+                case 'resize':
+                    $this->resizeImage($folderSize, $size);
+                    break;
             }
         }
     }
 
-    /**
-     * Crop image
-     * @param $folderSize
-     * @param $size
-     */
-    private function cropImage($folderSize, $size)
+    private function cropImage($folderSize, $size): void
     {
-        /**
-         * Get original image
-         */
-        $image = Image::make($this->pathImage);
-
-        /**
-         * Verify width / height for resize
-         */
+        $image = Image::read(Storage::disk($this->disk)->get($this->pathImage));
         if ($size['width'] && $size['height']) {
-            $image->crop($size['width'], $size['height']);
+            $image->crop($size['width'], $size['height'], background: $this->background);
         } else {
-            if ($size['width']) {
-                $image->widen($size['width']);
-            } else {
-                $image->heighten($size['height']);
-            }
+            $image->scale($size['width'], $size['height']);
         }
-
-        $folderSave = $this->diskFolder() . $this->getFolder($folderSize);
-
-        /**
-         * Check if exist folder if not exist create folder
-         */
         $this->checkOrCreateFolder($this->getFolder($folderSize));
+        if ($this->blur) {
+            $image->blur($this->blur);
+        }
+        if ($this->brightness) {
+            $image->brightness($this->brightness);
+        }
+        if ($this->greyscale) {
+            $image->greyscale();
+        }
+        if ($this->encode) {
+            $image->encodeByExtension(FileExtension::create($this->encode));
+        }
+        $imagePath = $this->generateImagePath($this->diskFolder($folderSize));
+        $image->save($imagePath, quality: $this->quality);
+        $this->optimize($imagePath);
+    }
+
+    private function resizeImage($folderSize, $size): void
+    {
+        $image = Image::read($this->pathImage);
+        $image->scale($size['width'], $size['height']);
 
         if ($this->blur) {
             $image->blur($this->blur);
         }
-
         if ($this->brightness) {
             $image->brightness($this->brightness);
         }
-
         if ($this->greyscale) {
             $image->greyscale();
         }
-
         if ($this->encode) {
-            $image->encode($this->encode, $this->quality);
+            $image->encodeByExtension(FileExtension::create($this->encode));
         }
-
-        $imagePath = $this->generateImagePath($folderSave);
-
-        /**
-         * Save cropped image
-         */
-        $image->save($imagePath);
-
-        $this->optimize($imagePath);
-    }
-
-    /**
-     * Resize image
-     * @param $folderSize
-     * @param $size
-     */
-    private function resizeImage($folderSize, $size)
-    {
-        /**
-         * Get original image
-         */
-        $image = Image::make($this->pathImage);
-
-        $widthImg = $image->width();
-        $heightImg = $image->height();
-
-        /**
-         * Verify width / height for crop
-         */
-        if ($size['width'] && $size['height']) {
-            if (($widthImg / $size['width']) > ($heightImg / $size['height'])) {
-                $image->resize(
-                    $size['width'],
-                    null,
-                    function ($constraint) {
-                        $constraint->aspectRatio();
-                        $constraint->upsize();
-                    }
-                );
-            } else {
-                $image->resize(
-                    null,
-                    $size['height'],
-                    function ($constraint) {
-                        $constraint->aspectRatio();
-                        $constraint->upsize();
-                    }
-                );
-            }
-        } else {
-            $image->resize(
-                $size['width'],
-                $size['height'],
-                function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                }
-            );
-        }
-
-        $folderSave = $this->diskFolder() . $this->getFolder($folderSize);
-
-        /**
-         * Check if exist folder if not exist create folder
-         */
         $this->checkOrCreateFolder($this->getFolder($folderSize));
-
-        if ($this->blur) {
-            $image->blur($this->blur);
-        }
-
-        if ($this->brightness) {
-            $image->brightness($this->brightness);
-        }
-
-        if ($this->greyscale) {
-            $image->greyscale();
-        }
-
-        if ($this->encode) {
-            $image->encode($this->encode, $this->quality);
-        }
-
-        $imagePath = $this->generateImagePath($folderSave);
-        /**
-         * Save resize
-         */
-        $image->save($imagePath);
-
+        $imagePath = $this->generateImagePath($this->diskFolder($folderSize));
+        $image->save($imagePath, quality: $this->quality);
         $this->optimize($imagePath);
     }
 
-    /**
-     * Resize && crop image
-     * @param $folderSize
-     * @param $size
-     */
-    private function resizeCropImage($folderSize, $size)
-    {
-        /**
-         * Get original image
-         */
-        $image = Image::make($this->pathImage);
-
-        $widthImg = $image->width();
-        $heightImg = $image->height();
-
-        /**
-         * Verify width / height for crop
-         */
-        if ($size['width'] && $size['height']) {
-            if (($widthImg / $size['width']) > ($heightImg / $size['height'])) {
-                $image->resize(
-                    $size['width'],
-                    null,
-                    function ($constraint) {
-                        $constraint->aspectRatio();
-                        $constraint->upsize();
-                    }
-                );
-            } else {
-                $image->resize(
-                    null,
-                    $size['height'],
-                    function ($constraint) {
-                        $constraint->aspectRatio();
-                        $constraint->upsize();
-                    }
-                );
-            }
-
-            /**
-             * Set final size image
-             */
-            $widthImg = $size['width'];
-            $heightImg = $size['height'];
-        } else {
-            $image->resize(
-                $size['width'],
-                $size['height'],
-                function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                }
-            );
-
-            /**
-             * Set final size image
-             */
-            $widthImg = $image->width();
-            $heightImg = $image->height();
-        }
-
-        /**
-         * Add background if width || height less than new resize
-         */
-        $image = Image::canvas($widthImg, $heightImg, $this->background)->insert($image, 'center');
-
-        $folderSave = $this->diskFolder() . $this->getFolder($folderSize);
-
-        /**
-         * Check if exist folder if not exist create folder
-         */
-        $this->checkOrCreateFolder($this->getFolder($folderSize));
-
-        if ($this->blur) {
-            $image->blur($this->blur);
-        }
-
-        if ($this->brightness) {
-            $image->brightness($this->brightness);
-        }
-
-        if ($this->greyscale) {
-            $image->greyscale();
-        }
-
-        if ($this->encode) {
-            $image->encode($this->encode, $this->quality);
-        }
-
-        $imagePath = $this->generateImagePath($folderSave);
-        /**
-         * Save resize
-         */
-        $image->save($imagePath);
-
-        $this->optimize($imagePath);
-    }
-
-    public function optimize($imagePath)
+    public function optimize($imagePath): void
     {
         if ($this->optimize) {
-            $optimizerChain = OptimizerChainFactory::create();
-
-            $optimizerChain->optimize($imagePath);
+            ImageOptimizer::optimize($imagePath);
         }
     }
 
-    private function diskFolder()
+    private function diskFolder(string $folder): string
     {
-        return Storage::disk($this->disk)->path('');
+        return Storage::disk($this->disk)->path($this->getFolder($folder));
     }
 
     private function getFolder($folder): string
     {
-        return trim($this->folder . '/' . $folder, '/');
+        return trim($this->folder.'/'.$folder, '/');
     }
 
-    private function checkOrCreateFolder(string $folder)
+    private function checkOrCreateFolder(string $folder): void
     {
         if (!$this->checkExist($folder)) {
             Storage::disk($this->disk)->makeDirectory($folder);
@@ -466,10 +247,10 @@ class ManipulationImage
         return Storage::disk($this->disk)->exists($path);
     }
 
-    private function deleteOld(string $folder)
+    private function deleteOld(string $folder): void
     {
         if ($this->overwrite) {
-            Storage::disk($this->disk)->delete($this->getFolder($folder) . '/' . $this->overwrite);
+            Storage::disk($this->disk)->delete($this->getFolder($folder).'/'.$this->overwrite);
         }
     }
 

@@ -7,124 +7,49 @@ use Illuminate\Support\Str;
 
 trait GenerateData
 {
-    /**
-     * Generate file name before save
-     * @return void
-     */
-    private function generateNameFile()
+    private function generateNameFile(): void
     {
-        $fileName = $this->name;
-
-        /**
-         * extract extension if not defined
-         */
         if (!$this->extension) {
-            if ($this->is_base64()) {
-                $this->decodeBase64();
-            } else if ($this->is_uploaded()) {
-                $this->setExtension($this->file->getClientOriginalExtension());
-            }
+            $this->is_base64() ? $this->decodeBase64() : $this->setExtension($this->file->getClientOriginalExtension());
         }
 
-        /**
-         * extract name if not defined
-         */
-        if (!$fileName) {
-            if (!$this->is_base64() && !$this->is_svg() && $this->is_uploaded()) {
-                $fileName .= '_' . $this->file->getClientOriginalName();
-            } else {
-                $fileName .= '_' . Str::random();
-            }
-        }
-
+        $fileName = $this->name ?: ($this->is_base64() || $this->is_svg() ? Str::random() : $this->file->getClientOriginalName());
         $fileName = $this->checkProhibitedSymbols($fileName);
-
         $path = $this->generatePathToFile($fileName);
 
-        /**
-         * Verify if exists file with this name, if exist change file name
-         */
         if (Storage::disk($this->disk)->exists($path)) {
             $fileName .= '_' . Str::random(8);
         }
 
-        /**
-         * add extension prefix to name
-         */
-        if ($this->encode) {
-            $fileName = $this->extension . '_' . $fileName;
-        }
-
-        $this->name = $fileName;
+        $this->name = $this->encode ? $fileName . '_' . $this->extension : $fileName;
     }
 
-    /**
-     * Replace prohibited symbols
-     * @param string $name
-     * @return string
-     */
     private function checkProhibitedSymbols(string $name): string
     {
-        $pattern = ['/\s+/', '/,/'];
-        $replace = ['_', '_'];
-
-        return Str::slug(preg_replace($pattern, $replace, $name), '_');
+        return Str::slug(preg_replace(['/\\s+/', '/,/'], ['_', '_'], $name), '_');
     }
 
-    /**
-     * @param string $name
-     * @return string
-     */
     private function generatePathToFile(string $name): string
     {
-        $path = '';
-        if ($this->folder) {
-            $path = $this->folder . '/';
-        }
-
-        $path .= $name . '.' . $this->extension;
-
-        return $path;
+        return ($this->folder ? $this->folder . '/' : '') . $name . '.' . $this->extension;
     }
 
-    /**
-     * Set extension and file from base64
-     */
-    private function decodeBase64()
+    private function decodeBase64(): void
     {
         [$type, $this->file] = explode(';', $this->file);
         [, $this->file] = explode(',', $this->file);
-
-        if (!$this->extension) {
-            $this->setExtension(explode('/', $type)[1]);
-        }
-
         $this->file = base64_decode($this->file);
+        $this->setExtension(explode('/', $type)[1]);
     }
 
-    /**
-     * @return string
-     */
     private function getPathFile(): string
     {
         return $this->folder . '/' . $this->getFullName();
     }
 
-    /**
-     * @param bool $resize
-     * @return string
-     */
-    private function getFullName(bool $resize = false): string
+    private function getFullName(): string
     {
-        $fileExtension = $this->extension;
-
-        if ($resize && $this->encode) {
-            $fileExtension = $this->encode;
-        }
-
-        if ($this->is_svg()) {
-            $fileExtension = 'svg';
-        }
+        $fileExtension = !$this->is_svg() && $this->encode ? $this->encode : $this->extension;
 
         return "$this->name.$fileExtension";
     }
