@@ -27,8 +27,9 @@ jobs:
           php-version: ${{ matrix.php-version }}
 
       - name: Install dependencies
-        run: composer require "illuminate/support:${{ matrix.laravel-version }}" --no-update
-        run: composer install --prefer-dist --no-progress --no-suggest --no-interaction
+        run: |
+          composer require "illuminate/support:${{ matrix.laravel-version }}" --no-update
+          composer install --prefer-dist --no-progress --no-suggest --no-interaction
 
       - name: Run tests
         run: vendor/bin/phpunit
