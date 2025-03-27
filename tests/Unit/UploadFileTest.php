@@ -114,7 +114,7 @@ class UploadFileTest extends Orchestra
         $result = $uploadFile->save();
 
         $this->assertNotEmpty($result);
-        Storage::disk('public')->assertExists('uploads/base64_image.jpg');
+        Storage::disk('public')->assertExists('uploads/' . $result);
     }
 
     public function test_file_uploads_with_svg()
