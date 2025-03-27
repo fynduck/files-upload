@@ -10,11 +10,10 @@ trait GenerateData
     private function generateNameFile(): void
     {
         if (!$this->extension) {
-            $this->is_base64() ? $this->decodeBase64() : $this->setExtension($this->file->getClientOriginalExtension());
+            $this->setExtension($this->file->getClientOriginalExtension());
         }
 
-        $fileName = $this->name ?: ($this->is_base64() || $this->is_svg() ? Str::random() : $this->file->getClientOriginalName());
-        $fileName = $this->checkProhibitedSymbols($fileName);
+        $fileName = $this->checkProhibitedSymbols($this->name);
         $path = $this->generatePathToFile($fileName);
 
         if (Storage::disk($this->disk)->exists($path)) {

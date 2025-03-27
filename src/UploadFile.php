@@ -141,15 +141,19 @@ class UploadFile
 
     public function save(string $action = 'resize'): string
     {
-        $this->deleteOld();
-
-        $this->generateNameFile();
-
         if (!$this->is_base64() && !$this->is_svg() && !$this->is_uploaded()) {
             return '';
         }
 
-        if ($this->is_base64() || $this->is_svg()) {
+        $this->deleteOld();
+
+        if ($this->is_base64()) {
+            $this->decodeBase64();
+        }
+
+        $this->generateNameFile();
+
+        if (is_string($this->file)) {
             Storage::disk($this->disk)->put($this->getPathFile(), $this->file);
         } elseif ($this->is_uploaded()) {
             Storage::disk($this->disk)
