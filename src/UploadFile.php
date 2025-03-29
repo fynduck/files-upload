@@ -25,9 +25,9 @@ class UploadFile
     protected ?int $blur = null;
     protected ?int $brightness = null;
     protected ?bool $greyscale = false;
-    protected ?bool $optimize;
+    protected ?bool $optimize = true;
     protected ?string $encode = null;
-    protected ?int $quality;
+    protected ?int $quality = 90;
 
     public static function file($file): UploadFile
     {
