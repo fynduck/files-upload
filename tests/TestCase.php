@@ -1,8 +1,9 @@
 <?php
 
-namespace Fynduck\FilesUpload;
+namespace Fynduck\FilesUpload\tests;
 
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Storage;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra

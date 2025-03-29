@@ -14,18 +14,18 @@ class ManipulationImage
     protected array $sizes;
     protected string $fileName;
     protected string $extension;
-    protected ?string $overwrite;
+    protected ?string $overwrite = null;
     protected string $folder;
     protected array $formats = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
     protected array $actions = ['resize', 'resize-crop', 'crop'];
     protected string $disk = 'public';
     protected ?string $background = null;
-    protected ?int $blur;
-    protected ?int $brightness;
-    protected ?bool $greyscale;
-    protected ?bool $optimize;
+    protected ?int $blur = null;
+    protected ?int $brightness = null;
+    protected ?bool $greyscale = false;
+    protected ?bool $optimize = true;
     protected ?string $encode = null;
-    protected ?int $quality;
+    protected ?int $quality = 90;
 
     public static function load(string $pathImage): ManipulationImage
     {
