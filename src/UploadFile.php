@@ -15,11 +15,9 @@ class UploadFile
 
     protected UploadedFile|string $file;
     protected string $name;
-    protected string $extension = '';
     protected ?string $overwrite = null;
     protected string $disk = 'public';
     protected string $folder;
-    protected array $formats = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
     protected array $sizes = [];
     protected ?string $background = null;
     protected ?int $blur = null;
@@ -29,7 +27,7 @@ class UploadFile
     protected ?string $encode = null;
     protected ?int $quality = 90;
 
-    public static function file($file): UploadFile
+    public static function file($file): self
     {
         return new static($file);
     }
@@ -39,115 +37,137 @@ class UploadFile
         $this->file = $file;
     }
 
-    public function setDisk(string $disk): UploadFile
+    public function setDisk(string $disk): self
     {
         $this->disk = $disk;
 
         return $this;
     }
 
-    public function setFolder(string $folder): UploadFile
+    public function setFolder(string $folder): self
     {
-        $this->folder = $folder;
+        $this->folder = trim($folder, '/');
 
         return $this;
     }
 
-    public function setName(string $name): UploadFile
+    public function setName(string $name): self
     {
-        $this->name = $name;
+        $this->name = trim($name);
 
         return $this;
     }
 
-    public function setExtension(string $extension): UploadFile
+    /**
+     * @deprecated Use setEncodeFormat() instead.
+     */
+    public function setExtension(?string $extension = null): self
     {
-        $this->extension = $extension;
-
-        return $this;
+        return $this->setEncodeFormat($extension);
     }
 
-    public function setOverwrite(?string $overwrite): UploadFile
+    public function setOverwrite(?string $overwrite): self
     {
         $this->overwrite = $overwrite;
 
         return $this;
     }
 
-    public function setSizes(array $sizes): UploadFile
+    public function setSizes(array $sizes): self
     {
         $this->sizes = $sizes;
 
         return $this;
     }
 
-    public function setBackground(?string $bg): UploadFile
+    public function setBackground(?string $bg): self
     {
         $this->background = $bg;
 
         return $this;
     }
 
-    public function setBlur(?int $blur = 1): UploadFile
+    public function setBlur(?int $blur = 1): self
     {
         $this->blur = $blur >= 0 ? $blur : null;
 
         return $this;
     }
 
-    public function setBrightness(?int $brightness): UploadFile
+    public function setBrightness(?int $brightness): self
     {
         $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;
 
         return $this;
     }
 
-    public function setGreyscale(bool $greyscale = false): UploadFile
+    public function setGreyscale(bool $greyscale = false): self
     {
         $this->greyscale = $greyscale;
 
         return $this;
     }
 
-    public function setOptimize(bool $optimize = true): UploadFile
+    public function setOptimize(bool $optimize = true): self
     {
         $this->optimize = $optimize;
 
         return $this;
     }
 
-    public function setEncodeFormat(?string $encode = null): UploadFile
+    public function setEncodeFormat(?string $encode = null): self
     {
-        if ($encode && in_array(Str::lower($encode), $this->formats)) {
-            $this->encode = $encode;
+        $candidate = $encode ? Str::lower($encode) : null;
+
+        if ($candidate && $this->isSupport($candidate)) {
+            $this->encode = $candidate;
+        } elseif ($this->isUploaded()) {
+            if ($this->file instanceof UploadedFile) {
+                $candidate = Str::lower($this->file->getClientOriginalExtension());
+            } elseif (is_string($this->file) && is_file($this->file)) {
+                $candidate = Str::lower(pathinfo($this->file, PATHINFO_EXTENSION));
+            }
+
+            $this->encode = $candidate && $this->isSupport($candidate) ? $candidate : null;
         }
 
         return $this;
     }
 
-    public function setEncodeQuality(?int $quality = 90): UploadFile
+    public function setEncodeQuality(?int $quality = 90): self
     {
-        $this->quality = ($quality && $quality >= 0 && $quality <= 100) ? $quality : 90;
+        $this->quality = $quality >= 0 ? min($quality, 100) : 90;
 
         return $this;
-    }
-
-    private function optimize($imagePath): void
-    {
-        if ($this->optimize && !$this->sizes && !$this->is_svg()) {
-            ImageOptimizer::optimize($imagePath);
-        }
     }
 
     public function save(string $action = 'resize'): string
     {
-        if (!$this->is_base64() && !$this->is_svg() && !$this->is_uploaded()) {
-            return '';
+        if (!isset($this->folder)) {
+            $this->folder = '';
+        }
+
+        if (!isset($this->name) || $this->name === '') {
+            throw new \InvalidArgumentException('Filename is required.');
+        }
+
+        if (!$this->encode) {
+            $this->setEncodeFormat();
+        }
+
+        if (!$this->encode) {
+            throw new \InvalidArgumentException('Unsupported file format.');
+        }
+
+        if (!$this->isbase64() && !$this->isUploaded() && !$this->isSvg()) {
+            throw new \InvalidArgumentException(
+                'Invalid file input. The file must be a base64 string, an uploaded file, or an SVG file.'
+            );
         }
 
         $this->deleteOld();
 
-        if ($this->is_base64()) {
+        if ($this->isbase64()) {
             $this->decodeBase64();
         }
 
@@ -155,15 +175,15 @@ class UploadFile
 
         if (is_string($this->file)) {
             Storage::disk($this->disk)->put($this->getPathFile(), $this->file);
-        } elseif ($this->is_uploaded()) {
+        } elseif ($this->isUploaded()) {
             Storage::disk($this->disk)
                 ->putFileAs($this->folder, $this->file, $this->getFullName());
         }
 
         $pathImage = Storage::disk($this->disk)->path($this->getPathFile());
 
-        if ($this->sizes && !$this->is_svg()) {
-            ManipulationImage::load($pathImage)
+        if ($this->sizes && !$this->isSvg() && $this->isSupport()) {
+            ManipulationImage::load($this->getPathFile())
                 ->setDisk($this->disk)
                 ->setSizes($this->sizes)
                 ->setFolder($this->folder)
@@ -174,7 +194,6 @@ class UploadFile
                 ->setBrightness($this->brightness)
                 ->setGreyscale($this->greyscale)
                 ->setOptimize($this->optimize)
-                ->setExtension($this->extension)
                 ->setEncodeFormat($this->encode)
                 ->setEncodeQuality($this->quality)
                 ->save($action);
@@ -185,10 +204,17 @@ class UploadFile
         return $this->getFullName();
     }
 
+    private function optimize($imagePath): void
+    {
+        if ($this->optimize && !$this->sizes && !$this->isSvg()) {
+            ImageOptimizer::optimize($imagePath);
+        }
+    }
+
     private function deleteOld(): void
     {
         if ($this->overwrite) {
-            Storage::disk($this->disk)->delete($this->folder.'/'.$this->overwrite);
+            Storage::disk($this->disk)->delete($this->folder . '/' . $this->overwrite);
         }
     }
 }

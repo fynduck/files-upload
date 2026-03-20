@@ -25,13 +25,12 @@ UploadFile::file($request->file('file')) //or $request->get('base64'), required
     ->setName('image_name') //optional, default use file name or random in case base64
     ->setOverwrite('old_name.jpg') //optional, remove file with old name
     ->setSizes(['xs' => ['width' => 100, 'height' => 100]]) //(optional) if need other sizes
-    ->setExtension('png') //(optional) default use file extension
     ->setBackground('#000000') //optional
     ->setBlur(0) //optional, use values between 0 and 100
     ->setBrightness(0) //optional, use values between -100 and +100. brightness 0 for no change
     ->setGreyscale(true) //optional true or false default is false
     ->setOptimize(true) //optional
-    ->setEncodeFormat() //optional, ['jpeg', 'jpg', 'png', 'gif', 'webp']
+    ->setEncodeFormat() //optional, ['jpeg', 'jpg', 'png', 'gif', 'webp', 'avif']
     ->setEncodeQuality() //optional, use values between 0 and 100
     ->save('resize'); //save option resize, crop default is resize
 ```
@@ -52,7 +51,7 @@ ManipulationImage::load($pathImage)
             ->setBrightness(0) //optional, use values between -100 and +100. brightness 0 for no change
             ->setGreyscale(true) //optional true or false default is true
             ->setOptimize(true) //optional
-            ->setEncodeFormat() //optional, ['jpeg', 'jpg', 'png', 'gif', 'webp']
+            ->setEncodeFormat() //optional, ['jpeg', 'jpg', 'png', 'gif', 'webp', 'avif']
             ->setEncodeQuality() //optional, use values between 0 and 100
             ->save('resize'); //save option resize, resize-crop, crop default is resize
 ```

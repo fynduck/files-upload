@@ -2,32 +2,37 @@
 
 namespace Fynduck\FilesUpload;
 
+use Fynduck\FilesUpload\Traits\CheckFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Imagick\Driver;
 use Intervention\Image\FileExtension;
+use Intervention\Image\Interfaces\ImageInterface;
 use Intervention\Image\Laravel\Facades\Image;
+use InvalidArgumentException;
+use RuntimeException;
 use Spatie\LaravelImageOptimizer\Facades\ImageOptimizer;
 
 class ManipulationImage
 {
+    use CheckFile;
+
     protected string $pathImage;
-    protected array $sizes;
-    protected string $fileName;
-    protected string $extension;
+    protected array $sizes = [];
+    protected string $fileName = '';
     protected ?string $overwrite = null;
     protected string $folder;
-    protected array $formats = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
-    protected array $actions = ['resize', 'resize-crop', 'crop'];
+    protected array $actions = ['resize', 'crop'];
     protected string $disk = 'public';
     protected ?string $background = null;
     protected ?int $blur = null;
     protected ?int $brightness = null;
     protected ?bool $greyscale = false;
-    protected ?bool $optimize = true;
+    protected ?bool $optimize = false;
     protected ?string $encode = null;
     protected ?int $quality = 90;
 
-    public static function load(string $pathImage): ManipulationImage
+    public static function load(string $pathImage): self
     {
         return new static($pathImage);
     }
@@ -37,185 +42,163 @@ class ManipulationImage
         $this->pathImage = $pathImage;
     }
 
-    public function setDisk(string $disk): ManipulationImage
+    public function setDisk(string $disk): self
     {
         $this->disk = $disk;
 
         return $this;
     }
 
-    public function setSizes(array $sizes): ManipulationImage
+    public function setSizes(array $sizes): self
     {
         $this->sizes = $sizes;
 
         return $this;
     }
 
-    public function setName(string $name): ManipulationImage
+    public function setName(string $name): self
     {
         $this->fileName = $name;
 
         return $this;
     }
 
-    public function setOverwrite(?string $overwrite): ManipulationImage
+    public function setOverwrite(?string $overwrite): self
     {
         $this->overwrite = $overwrite;
 
         return $this;
     }
 
-    public function setFolder(string $folder): ManipulationImage
+    public function setFolder(string $folder): self
     {
-        $this->folder = $folder;
+        $this->folder = trim($folder, '/');
 
         return $this;
     }
 
-    public function setBackground(?string $bg): ManipulationImage
+    /**
+     * @deprecated Use setEncodeFormat() instead.
+     */
+    public function setExtension(?string $extension = null): self
+    {
+        return $this->setEncodeFormat($extension);
+    }
+
+    public function setBackground(?string $bg): self
     {
         $this->background = $bg;
 
         return $this;
     }
 
-    public function setBlur(?int $blur = 1): ManipulationImage
+    public function setBlur(?int $blur = 1): self
     {
-        $this->blur = $blur >= 0 ? $blur : null;
+        $this->blur = $blur >= 0 ? min($blur, 100) : null;
 
         return $this;
     }
 
-    public function setBrightness(?int $brightness): ManipulationImage
+    public function setBrightness(?int $brightness): self
     {
         $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;
 
         return $this;
     }
 
-    public function setGreyscale(?bool $greyscale = false): ManipulationImage
+    public function setGreyscale(?bool $greyscale = false): self
     {
         $this->greyscale = $greyscale;
 
         return $this;
     }
 
-    public function setOptimize(?bool $optimize = true): ManipulationImage
+    public function setOptimize(?bool $optimize = true): self
     {
         $this->optimize = $optimize;
 
         return $this;
     }
 
-    public function setExtension(string $extension): ManipulationImage
-    {
-        $extension = Str::lower($extension);
-        if (!$this->encode && in_array($extension, $this->formats)) {
-            $this->extension = $extension;
-        }
-        return $this;
-    }
-
-    public function setEncodeFormat(?string $encode = null): ManipulationImage
+    public function setEncodeFormat(?string $encode = null): self
     {
         $encode = Str::lower($encode);
-        if ($encode && in_array($encode, $this->formats)) {
+        if ($encode && $this->isSupport($encode)) {
             $this->encode = $encode;
-            $this->extension = $encode;
         }
 
         return $this;
     }
 
-    public function setEncodeQuality(?int $quality = 90): ManipulationImage
+    public function setEncodeQuality(?int $quality = 90): self
     {
-        $this->quality = ($quality && $quality >= 0 && $quality <= 100) ? $quality : 90;
+        $this->quality = $quality >= 0 ? min($quality, 100) : 90;
 
         return $this;
     }
 
     public function save(string $action = 'resize'): void
     {
-        if (!in_array($action, $this->actions)) {
-            throw new \Error('Action does\'t exist');
+        if (!in_array($action, $this->actions, true)) {
+            throw new InvalidArgumentException('Action does not exist.');
         }
         if (!$this->sizes) {
-            throw new \Error('Sizes is required');
+            throw new InvalidArgumentException('Sizes is required.');
         }
         if (!$this->fileName) {
-            throw new \Error('Filename is required');
+            throw new InvalidArgumentException('Filename is required.');
         }
-        if (!in_array($this->extension, $this->formats)) {
-            throw new \Error("Format '$this->extension' is not supported");
+
+        $sourceMimeType = $this->sourceMimeType();
+        if (!$sourceMimeType || !$this->isSupport($sourceMimeType)) {
+            throw new RuntimeException("Format '{$sourceMimeType}' is not supported.");
         }
+
         $this->action($action);
     }
 
-    private function action($action): void
+    private function action(string $action): void
     {
         foreach ($this->sizes as $folderSize => $size) {
-            if (!$size['width'] && !$size['height']) {
+            $width = $size['width'] ?? null;
+            $height = $size['height'] ?? null;
+
+            if (!$width && !$height) {
                 continue;
             }
+
             $this->deleteOld($folderSize);
+
             switch ($action) {
                 case 'crop':
-                    $this->cropImage($folderSize, $size);
+                    $this->cropImage($folderSize, $width, $height, $size['position'] ?? 'center');
                     break;
                 case 'resize':
-                    $this->resizeImage($folderSize, $size);
+                    $this->resizeImage($folderSize, $width, $height);
                     break;
             }
         }
     }
 
-    private function cropImage($folderSize, $size): void
+    private function cropImage(string $folderSize, ?int $width, ?int $height, string $position): void
     {
-        $image = Image::read(Storage::disk($this->disk)->get($this->pathImage));
-        if ($size['width'] && $size['height']) {
-            $image->crop($size['width'], $size['height'], background: $this->background);
+        $image = $this->readImage();
+
+        if ($width && $height) {
+            $image->cover($width, $height, position: $position);
         } else {
-            $image->scale($size['width'], $size['height']);
+            $image->scale($width, $height);
         }
-        $this->checkOrCreateFolder($this->getFolder($folderSize));
-        if ($this->blur) {
-            $image->blur($this->blur);
-        }
-        if ($this->brightness) {
-            $image->brightness($this->brightness);
-        }
-        if ($this->greyscale) {
-            $image->greyscale();
-        }
-        if ($this->encode) {
-            $image->encodeByExtension(FileExtension::create($this->encode));
-        }
-        $imagePath = $this->generateImagePath($this->diskFolder($folderSize));
-        $image->save($imagePath, quality: $this->quality);
-        $this->optimize($imagePath);
+
+        $this->applyEffectsAndStore($image, $folderSize);
     }
 
-    private function resizeImage($folderSize, $size): void
+    private function resizeImage(string $folderSize, ?int $width, ?int $height): void
     {
-        $image = Image::read($this->pathImage);
-        $image->scale($size['width'], $size['height']);
+        $image = $this->readImage();
+        $image->scale($width, $height);
 
-        if ($this->blur) {
-            $image->blur($this->blur);
-        }
-        if ($this->brightness) {
-            $image->brightness($this->brightness);
-        }
-        if ($this->greyscale) {
-            $image->greyscale();
-        }
-        if ($this->encode) {
-            $image->encodeByExtension(FileExtension::create($this->encode));
-        }
-        $this->checkOrCreateFolder($this->getFolder($folderSize));
-        $imagePath = $this->generateImagePath($this->diskFolder($folderSize));
-        $image->save($imagePath, quality: $this->quality);
-        $this->optimize($imagePath);
+        $this->applyEffectsAndStore($image, $folderSize);
     }
 
     public function optimize($imagePath): void
@@ -254,8 +237,55 @@ class ManipulationImage
         }
     }
 
-    private function generateImagePath(string $imgFolder): string
+    private function readImage(): ImageInterface
     {
-        return "$imgFolder/$this->fileName.$this->extension";
+        return Image::withDriver(Driver::class)->read($this->sourcePath());
+    }
+
+    private function sourcePath(): string
+    {
+        return $this->isAbsolutePath($this->pathImage)
+            ? $this->pathImage
+            : Storage::disk($this->disk)->path(trim($this->pathImage, '/'));
+    }
+
+    private function sourceMimeType(): ?string
+    {
+        if ($this->isAbsolutePath($this->pathImage)) {
+            return mime_content_type($this->pathImage) ?: null;
+        }
+
+        return Storage::disk($this->disk)->mimeType(trim($this->pathImage, '/'));
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        return str_starts_with($path, '/') || preg_match('/^[A-Za-z]:\\\\/', $path) === 1;
+    }
+
+    private function applyEffectsAndStore(ImageInterface $image, string $folderSize): void
+    {
+        if ($this->blur) {
+            $image->blur($this->blur);
+        }
+        if ($this->brightness) {
+            $image->brightness($this->brightness);
+        }
+        if ($this->greyscale) {
+            $image->greyscale();
+        }
+        if ($this->encode) {
+            $image->encodeByExtension(FileExtension::create($this->encode));
+        }
+
+        $this->checkOrCreateFolder($this->getFolder($folderSize));
+        $imagePath = $this->generateImagePath($this->diskFolder($folderSize), $image->origin()->fileExtension());
+        $image->save($imagePath, quality: $this->quality);
+        $this->optimize($imagePath);
+    }
+
+    private function generateImagePath(string $imgFolder, string $extension): string
+    {
+        return "{$imgFolder}/{$this->fileName}." . ($this->encode ?: $extension);
     }
 }

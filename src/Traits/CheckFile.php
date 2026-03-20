@@ -2,20 +2,37 @@
 
 namespace Fynduck\FilesUpload\Traits;
 
+use Illuminate\Http\UploadedFile;
+use Intervention\Image\Laravel\Facades\Image;
+
 trait CheckFile
 {
-    private function is_uploaded(): bool
+    private function isUploaded(): bool
     {
-        return is_uploaded_file($this->file) || is_file($this->file);
+        if ($this->file instanceof UploadedFile) {
+            return true;
+        }
+
+        return is_string($this->file) && (is_uploaded_file($this->file) || is_file($this->file));
     }
 
-    private function is_base64(): bool
+    private function isBase64(): bool
     {
         return (bool)preg_match("/data:[a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+;base64,.*/", $this->file);
     }
 
-    private function is_svg(): bool
+    private function isSvg(): bool
     {
-        return str_contains($this->extension, 'svg');
+        if ($this->file instanceof UploadedFile) {
+            return $this->file->getClientMimeType() === 'image/svg+xml'
+                || strtolower($this->file->getClientOriginalExtension()) === 'svg';
+        }
+
+        return is_string($this->file) && is_file($this->file) && mime_content_type($this->file) === 'image/svg+xml';
+    }
+
+    public function isSupport(?string $encode = null): bool
+    {
+        return Image::withDriver(config('image.driver'))->driver()->supports(($encode ?? $this->encode) ?: '');
     }
 }

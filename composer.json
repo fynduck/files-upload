@@ -1,45 +1,65 @@
 {
-    "name": "fynduck/files-upload",
-    "description": "A description for filesUpload.",
-    "type": "package",
-    "license": "MIT",
-    "keywords": [
-        "laravel"
-    ],
-    "authors": [
-        {
-            "name": "fynduck",
-            "email": "stason.k12@gmail.com"
-        }
-    ],
-    "require": {
-        "php": ">=8.1",
-        "illuminate/support": "^9.0|^10.0|^11.0|^12.0",
-        "spatie/laravel-image-optimizer": "^1.8",
-        "intervention/image-laravel": "^1.5"
-    },
-    "require-dev": {
-        "orchestra/testbench": "^7.5|^8.0|^9.0|^10.0",
-        "phpunit/phpunit": "^9.5|^10.5|^11.5.3"
-    },
-    "autoload": {
-        "psr-4": {
-            "Fynduck\\FilesUpload\\": "src"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Fynduck\\FilesUpload\\Test\\": "tests"
-        }
-    },
-    "scripts": {
-        "test": "vendor/bin/phpunit"
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Fynduck\\FilesUpload\\FilesUploadServiceProvider"
-            ]
-        }
+  "name": "fynduck/files-upload",
+  "version": "4.1.0",
+  "description": "Save & resize & crop images",
+  "keywords": [
+    "fynduck",
+    "laravel",
+    "files-upload"
+  ],
+  "homepage": "https://github.com/fynduck/files-upload",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "fynduck",
+      "email": "stason.k12@gmail.com",
+      "role": "Developer"
     }
+  ],
+  "require": {
+    "php": ">=8.1",
+    "illuminate/support": "^9.0|^10.0|^11.0|^12.0|^13.0",
+    "spatie/laravel-image-optimizer": "^1.8",
+    "intervention/image-laravel": "^1.5",
+    "intervention/image-driver-vips": "^1.0",
+    "ext-fileinfo": "*"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^7.5|^8.0|^9.0|^10.0|^11.0|^12.0",
+    "phpunit/phpunit": "^9.5|^10.5|^11.5.3"
+  },
+  "autoload": {
+    "psr-4": {
+      "Fynduck\\FilesUpload\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Fynduck\\FilesUpload\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "post-autoload-dump": "@composer run prepare",
+    "prepare": "@php vendor/bin/testbench package:discover --ansi",
+    "analyse": "vendor/bin/phpstan analyse",
+    "test": "vendor/bin/pest",
+    "test-coverage": "vendor/bin/pest --coverage",
+    "format": "vendor/bin/pint"
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true,
+      "phpstan/extension-installer": true
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Fynduck\\FilesUpload\\FilesUploadServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
 }
