@@ -9,10 +9,6 @@ trait GenerateData
 {
     private function generateNameFile(): void
     {
-        if (!$this->extension) {
-            $this->setExtension($this->file->getClientOriginalExtension());
-        }
-
         $fileName = $this->checkProhibitedSymbols($this->name);
         $path = $this->generatePathToFile($fileName);
 
@@ -20,7 +16,7 @@ trait GenerateData
             $fileName .= '_' . Str::random(8);
         }
 
-        $this->name = $this->encode ? $fileName . '_' . $this->extension : $fileName;
+        $this->name = $fileName;
     }
 
     private function checkProhibitedSymbols(string $name): string
@@ -30,26 +26,29 @@ trait GenerateData
 
     private function generatePathToFile(string $name): string
     {
-        return ($this->folder ? $this->folder . '/' : '') . $name . '.' . $this->extension;
+        return ($this->folder ? trim($this->folder, '/') . '/' : '') . $name . '.' . $this->encode;
     }
 
     private function decodeBase64(): void
     {
         [$type, $this->file] = explode(';', $this->file);
         [, $this->file] = explode(',', $this->file);
-        $this->file = base64_decode($this->file);
-        $this->setExtension(explode('/', $type)[1]);
+        $decoded = base64_decode($this->file, true);
+        if ($decoded === false) {
+            throw new \InvalidArgumentException('Invalid base64 payload.');
+        }
+
+        $this->file = $decoded;
+        $this->setEncodeFormat(explode('/', $type)[1]);
     }
 
     private function getPathFile(): string
     {
-        return $this->folder . '/' . $this->getFullName();
+        return trim($this->folder . '/' . $this->getFullName(), '/');
     }
 
     private function getFullName(): string
     {
-        $fileExtension = !$this->is_svg() && $this->encode ? $this->encode : $this->extension;
-
-        return "$this->name.$fileExtension";
+        return "$this->name.$this->encode";
     }
 }

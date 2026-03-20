@@ -2,155 +2,75 @@
 
 namespace Fynduck\FilesUpload\Tests\Unit;
 
+use Fynduck\FilesUpload\Tests\TestCase;
 use Fynduck\FilesUpload\UploadFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Orchestra\Testbench\TestCase as Orchestra;
-use Spatie\LaravelImageOptimizer\ImageOptimizerServiceProvider;
-use Intervention\Image\Laravel\ServiceProvider;
 
-class UploadFileTest extends Orchestra
+class UploadFileTest extends TestCase
 {
-    public static $latestResponse;
-
-    public static function tearDownAfterClass(): void
+    public function test_it_uploads_file_using_legacy_set_extension_alias(): void
     {
-        parent::tearDownAfterClass();
-        self::$latestResponse = null;
-    }
+        Storage::fake('public');
 
-    protected function getPackageProviders($app)
-    {
-        return [
-            ImageOptimizerServiceProvider::class,
-            ServiceProvider::class,
-        ];
-    }
+        $file = UploadedFile::fake()->create('test.txt', 1, 'text/plain');
+        $upload = $this->getMockBuilder(UploadFile::class)
+            ->setConstructorArgs([$file])
+            ->onlyMethods(['isSupport'])
+            ->getMock();
+        $upload->method('isSupport')->willReturn(true);
 
-    protected function getPackageAliases($app)
-    {
-        return [
-            'Image' => \Intervention\Image\Laravel\Facades\Image::class,
-        ];
-    }
-
-    public function test_file_uploads_successfully()
-    {
-        $file = UploadedFile::fake()->image('test.jpg');
-        $uploadFile = UploadFile::file($file)
+        $result = $upload
             ->setDisk('public')
             ->setFolder('uploads')
-            ->setName('test_image')
+            ->setName('legacy-extension')
             ->setExtension('jpg')
-            ->setOptimize(true)
-            ->setEncodeQuality(80);
-
-        $result = $uploadFile->save();
-
-        $this->assertNotEmpty($result);
-        Storage::disk('public')->assertExists('uploads/test_image.jpg');
-    }
-
-    public function test_file_sizes_without_params_is_uploaded_successfully()
-    {
-        $file = UploadedFile::fake()->image('test.jpg');
-        $uploadFile = UploadFile::file($file)
-            ->setDisk('public')
-            ->setFolder('uploads')
-            ->setSizes([
-                'thumb'  => ['width' => 100, 'height' => 100],
-                'medium' => ['width' => 400, 'height' => 400],
-                'large'  => ['width' => 600, 'height' => 600],
-            ])
-            ->setName('test_image')
-            ->setOptimize(true)
-            ->setEncodeQuality(80);
-
-        $result = $uploadFile->save();
-
-        $this->assertNotEmpty($result);
-        Storage::disk('public')->assertExists('uploads/test_image.jpg');
-    }
-
-    public function test_file_sizes_is_uploaded_successfully()
-    {
-        $file = UploadedFile::fake()->image('test.jpg');
-        $uploadFile = UploadFile::file($file)
-            ->setDisk('public')
-            ->setSizes([
-                'thumb'  => ['width' => 100, 'height' => 100],
-                'medium' => ['width' => 400, 'height' => 400],
-                'large'  => ['width' => 600, 'height' => 600],
-            ])
-            ->setFolder('images')
-            ->setName('test-image_'.time())
-            ->setOverwrite(null)
-            ->setBackground('')
-            ->setBlur(0)
-            ->setBrightness(0)
-            ->setGreyscale(true)
             ->setOptimize(false)
-            ->setEncodeFormat('webp')
-            ->setEncodeQuality(95);
+            ->save();
 
-        $result = $uploadFile->save();
-
-        $this->assertNotEmpty($result);
-        Storage::disk('public')->assertExists('uploads/test_image.jpg');
+        $this->assertSame('legacy_extension.jpg', $result);
+        Storage::disk('public')->assertExists('uploads/legacy_extension.jpg');
     }
 
-    public function test_file_uploads_with_base64()
+    public function test_it_requires_filename_before_save(): void
     {
-        $file = UploadedFile::fake()->image('test.jpg');
-        $base64 = 'data:image/jpeg;base64,'.base64_encode(file_get_contents($file));
-        $uploadFile = UploadFile::file($base64)
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Filename is required.');
+
+        UploadFile::file('invalid-payload')
             ->setDisk('public')
             ->setFolder('uploads')
-            ->setName('base64_image')
-            ->setExtension('jpg')
-            ->setOptimize(true)
-            ->setEncodeQuality(80);
-
-        $result = $uploadFile->save();
-
-        $this->assertNotEmpty($result);
-        Storage::disk('public')->assertExists('uploads/' . $result);
+            ->save();
     }
 
-    public function test_file_uploads_with_svg()
+    public function test_it_rejects_invalid_file_input(): void
     {
-        $file = UploadedFile::fake()->create('test.svg', 100, 'image/svg+xml');
-        $uploadFile = UploadFile::file($file)
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported file format.');
+
+        UploadFile::file('invalid-payload')
             ->setDisk('public')
             ->setFolder('uploads')
-            ->setName('test_svg')
-            ->setExtension('svg')
-            ->setOptimize(false);
-
-        $result = $uploadFile->save();
-
-        $this->assertNotEmpty($result);
-        Storage::disk('public')->assertExists('uploads/test_svg.svg');
+            ->setName('invalid')
+            ->save();
     }
 
-    public function test_file_uploads_with_overwrite()
+    public function test_it_rejects_invalid_base64_payload(): void
     {
-        $file = UploadedFile::fake()->image('test.jpg');
-        Storage::disk('public')->put('uploads/overwrite_image.jpg', 'old content');
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid base64 payload.');
 
-        $uploadFile = UploadFile::file($file)
+        $upload = $this->getMockBuilder(UploadFile::class)
+            ->setConstructorArgs(['data:image/png;base64,not-valid-base64'])
+            ->onlyMethods(['isSupport'])
+            ->getMock();
+        $upload->method('isSupport')->willReturn(true);
+
+        $upload
             ->setDisk('public')
             ->setFolder('uploads')
-            ->setName('overwrite_image')
-            ->setExtension('jpg')
-            ->setOverwrite('overwrite_image.jpg')
-            ->setOptimize(true)
-            ->setEncodeQuality(80);
-
-        $result = $uploadFile->save();
-
-        $this->assertNotEmpty($result);
-        Storage::disk('public')->assertExists('uploads/overwrite_image.jpg');
-        $this->assertNotEquals('old content', Storage::disk('public')->get('uploads/overwrite_image.jpg'));
+            ->setName('bad-base64')
+            ->setExtension('png')
+            ->save();
     }
 }

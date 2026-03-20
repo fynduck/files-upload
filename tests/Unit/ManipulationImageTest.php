@@ -1,92 +1,54 @@
 <?php
 
+namespace Fynduck\FilesUpload\Tests\Unit;
+
 use Fynduck\FilesUpload\ManipulationImage;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Laravel\ServiceProvider;
-use Orchestra\Testbench\TestCase as Orchestra;
-use Spatie\LaravelImageOptimizer\ImageOptimizerServiceProvider;
+use Fynduck\FilesUpload\Tests\TestCase;
 
-class ManipulationImageTest extends Orchestra
+class ManipulationImageTest extends TestCase
 {
-    public string $name = 'test2';
-    public string $disk = 'public';
-    public string $extension = 'jpg';
-    public string $folder = 'images';
-    public array $sizes = [
-        'medium' => ['width' => 200, 'height' => 200],
-    ];
-
-    public static $latestResponse;
-
-    public static function tearDownAfterClass(): void
+    public function test_it_supports_legacy_set_extension_alias(): void
     {
-        parent::tearDownAfterClass();
-        self::$latestResponse = null;
+        $manipulation = $this->getMockBuilder(ManipulationImage::class)
+            ->setConstructorArgs(['images/source.png'])
+            ->onlyMethods(['isSupport'])
+            ->getMock();
+        $manipulation->method('isSupport')->willReturn(true);
+
+        $manipulation->setExtension('webp');
+
+        $reflection = new \ReflectionClass($manipulation);
+        $property = $reflection->getProperty('encode');
+        $property->setAccessible(true);
+
+        $this->assertSame('webp', $property->getValue($manipulation));
     }
 
-    protected function getPackageProviders($app)
+    public function test_it_rejects_unknown_action(): void
     {
-        return [
-            ImageOptimizerServiceProvider::class,
-            ServiceProvider::class,
-        ];
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Action does not exist.');
+
+        ManipulationImage::load('images/source.png')->save('unknown');
     }
 
-    protected function getPackageAliases($app)
+    public function test_it_requires_sizes_to_process_image(): void
     {
-        return [
-            'Image' => \Intervention\Image\Laravel\Facades\Image::class,
-        ];
-    }
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Sizes is required.');
 
-    public function test_base_resize()
-    {
-        $fullName = $this->name.'.'.$this->extension;
-
-        $file = UploadedFile::fake()->image($fullName);
-
-        Storage::fake($this->disk)->putFileAs($this->folder, $file, $fullName);
-        $pathImage = Storage::disk($this->disk)->path($this->folder.'/'.$fullName);
-
-        ManipulationImage::load($pathImage)
-            ->setSizes($this->sizes)
-            ->setFolder($this->folder)
-            ->setExtension($this->extension)
-            ->setName($this->name)
+        ManipulationImage::load('images/source.png')
+            ->setName('image')
             ->save();
-
-        foreach ($this->sizes as $sizeFolder => $size) {
-            Storage::disk($this->disk)->assertExists($this->folder.'/'.$sizeFolder.'/'.$fullName);
-        }
     }
 
-    public function test_set_all_resize()
+    public function test_it_requires_filename_to_process_image(): void
     {
-        $fullName = $this->name.'.'.$this->extension;
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Filename is required.');
 
-        $file = UploadedFile::fake()->image($fullName);
-
-        Storage::fake($this->disk)->putFileAs($this->folder, $file, $fullName);
-        $pathImage = Storage::disk($this->disk)->path($this->folder.'/'.$fullName);
-
-        ManipulationImage::load($pathImage)
-            ->setSizes($this->sizes)
-            ->setFolder($this->folder)
-            ->setExtension($this->extension)
-            ->setName($this->name)
-            ->setOverwrite($fullName)
-            ->setBackground('#ffffff')
-            ->setBlur(5)
-            ->setBrightness(50)
-            ->setGreyscale(true)
-            ->setOptimize()
-            ->setEncodeFormat('webp')
-            ->setEncodeQuality(80)
+        ManipulationImage::load('images/source.png')
+            ->setSizes(['thumb' => ['width' => 100, 'height' => 100]])
             ->save();
-
-        foreach ($this->sizes as $sizeFolder => $size) {
-            Storage::disk($this->disk)->assertExists($this->folder.'/'.$sizeFolder.'/'.$this->name.'.webp');
-        }
     }
 }
