@@ -32,7 +32,45 @@ UploadFile::file($request->file('file')) //or $request->get('base64'), required
     ->setOptimize(true) //optional
     ->setEncodeFormat() //optional, ['jpeg', 'jpg', 'png', 'gif', 'webp', 'avif']
     ->setEncodeQuality() //optional, use values between 0 and 100
+    ->queue() //optional, generate sizes in the background (see below)
     ->save('resize'); //save option resize, crop default is resize
+```
+
+**Background (queued) resizing**
+
+When you request many sizes, generating them inline makes the client wait for every
+resize + optimize to finish. Call `->queue()` to store the original immediately and
+generate the size variants on your queue workers instead:
+
+```php
+UploadFile::file($request->file('file'))
+    ->setFolder('Post')
+    ->setName('image_name')
+    ->setSizes(['xs' => ['width' => 100, 'height' => 100], 'md' => ['width' => 400, 'height' => 400]])
+    ->queue() // or ->queue('redis', 'images') ; ->queue(perSize: false) for one job for all sizes
+    ->save(); // returns the original filename right away
+```
+
+By default each size is dispatched as its own job inside a batch, so sizes are rendered
+in parallel across workers. When the batch finishes, a `Fynduck\FilesUpload\Events\ImageSizesGenerated`
+event is fired (disk, folder, name, size keys, source path) so you can react (e.g. mark a
+record as ready). Make sure a worker is running: `php artisan queue:work`.
+
+Publish the config to change defaults (default disk, quality, and whether background mode
+is always on):
+
+```bash
+php artisan vendor:publish --tag=files-upload-config
+```
+
+```php
+// config/files-upload.php
+'queue' => [
+    'enabled'    => false, // set true to always resize in the background
+    'connection' => null,
+    'queue'      => null,
+    'per_size'   => true,  // one job per size (parallel) vs a single job for all sizes
+],
 ```
 
 **Make new sizes from image**

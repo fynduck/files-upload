@@ -8,21 +8,19 @@ class FilesUploadServiceProvider extends ServiceProvider
 {
     /**
      * Bootstrap services.
-     *
-     * @return void
      */
-    public function boot()
+    public function boot(): void
     {
-        //
+        $this->publishes([
+            __DIR__ . '/../config/files-upload.php' => $this->app->configPath('files-upload.php'),
+        ], 'files-upload-config');
     }
 
     /**
      * Register services.
-     *
-     * @return void
      */
-    public function register()
+    public function register(): void
     {
-        //
+        $this->mergeConfigFrom(__DIR__ . '/../config/files-upload.php', 'files-upload');
     }
 }
