@@ -9,10 +9,31 @@ on:
       - master
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-progress --no-interaction --prefer-stable
+
+      - name: Check code style (Pint)
+        run: vendor/bin/pint --test
+
   test:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - php-version: '8.1'
@@ -46,26 +67,35 @@ jobs:
           - php-version: '8.5'
             laravel-version: '13.*'
 
+    name: PHP ${{ matrix.php-version }} - Laravel ${{ matrix.laravel-version }}
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
+          extensions: fileinfo, gd, imagick
+          tools: composer:v2
+          coverage: none
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: vendor
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
+          key: ${{ runner.os }}-php${{ matrix.php-version }}-laravel${{ matrix.laravel-version }}-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-php${{ matrix.php-version }}-laravel${{ matrix.laravel-version }}-
 
       - name: Install dependencies
         run: |
-          composer require "illuminate/support:${{ matrix.laravel-version }}" --no-update
-          composer install --prefer-dist --no-progress --no-suggest --no-interaction
+          composer require --no-update \
+            "illuminate/contracts:${{ matrix.laravel-version }}" \
+            "illuminate/support:${{ matrix.laravel-version }}" \
+            "illuminate/bus:${{ matrix.laravel-version }}" \
+            "illuminate/queue:${{ matrix.laravel-version }}"
+          composer update --prefer-dist --no-progress --no-interaction --prefer-stable
 
       - name: Run tests
         run: vendor/bin/phpunit
