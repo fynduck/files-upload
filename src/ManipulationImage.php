@@ -2,10 +2,10 @@
 
 namespace Fynduck\FilesUpload;
 
+use Fynduck\FilesUpload\Data\ImageSize;
+use Fynduck\FilesUpload\Data\ManipulationOptions;
 use Fynduck\FilesUpload\Traits\CheckFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Intervention\Image\Drivers\Imagick\Driver;
 use Intervention\Image\FileExtension;
 use Intervention\Image\Interfaces\ImageInterface;
 use Intervention\Image\Laravel\Facades\Image;
@@ -18,18 +18,34 @@ class ManipulationImage
     use CheckFile;
 
     protected string $pathImage;
+
+    /**
+     * @var array<string, ImageSize>
+     */
     protected array $sizes = [];
+
     protected string $fileName = '';
+
     protected ?string $overwrite = null;
+
     protected string $folder;
+
     protected array $actions = ['resize', 'crop'];
+
     protected string $disk = 'public';
+
     protected ?string $background = null;
+
     protected ?int $blur = null;
+
     protected ?int $brightness = null;
+
     protected ?bool $greyscale = false;
+
     protected ?bool $optimize = false;
+
     protected ?string $encode = null;
+
     protected ?int $quality = 90;
 
     public static function load(string $pathImage): self
@@ -40,6 +56,24 @@ class ManipulationImage
     public function __construct(string $pathImage)
     {
         $this->pathImage = $pathImage;
+        $this->disk = config('files-upload.disk', $this->disk);
+    }
+
+    public function withOptions(ManipulationOptions $options): self
+    {
+        $this->disk = $options->disk;
+        $this->folder = trim($options->folder, '/');
+        $this->fileName = $options->name;
+        $this->overwrite = $options->overwrite;
+        $this->background = $options->background;
+        $this->blur = $options->blur;
+        $this->brightness = $options->brightness;
+        $this->greyscale = $options->greyscale;
+        $this->optimize = $options->optimize;
+        $this->encode = $options->encode;
+        $this->quality = $options->quality;
+
+        return $this;
     }
 
     public function setDisk(string $disk): self
@@ -51,7 +85,9 @@ class ManipulationImage
 
     public function setSizes(array $sizes): self
     {
-        $this->sizes = $sizes;
+        $normalized = array_map(static fn ($size) => $size instanceof ImageSize ? $size : ImageSize::fromArray($size), $sizes);
+
+        $this->sizes = $normalized;
 
         return $this;
     }
@@ -94,14 +130,14 @@ class ManipulationImage
 
     public function setBlur(?int $blur = 1): self
     {
-        $this->blur = $blur >= 0 ? min($blur, 100) : null;
+        $this->blur = ManipulationOptions::normalizeBlur($blur);
 
         return $this;
     }
 
     public function setBrightness(?int $brightness): self
     {
-        $this->brightness = $brightness >= -100 && $brightness <= 100 ? $brightness : null;
+        $this->brightness = ManipulationOptions::normalizeBrightness($brightness);
 
         return $this;
     }
@@ -122,7 +158,7 @@ class ManipulationImage
 
     public function setEncodeFormat(?string $encode = null): self
     {
-        $encode = Str::lower($encode);
+        $encode = ManipulationOptions::normalizeEncode($encode);
         if ($encode && $this->isSupport($encode)) {
             $this->encode = $encode;
         }
@@ -132,25 +168,25 @@ class ManipulationImage
 
     public function setEncodeQuality(?int $quality = 90): self
     {
-        $this->quality = $quality >= 0 ? min($quality, 100) : 90;
+        $this->quality = ManipulationOptions::normalizeQuality($quality);
 
         return $this;
     }
 
     public function save(string $action = 'resize'): void
     {
-        if (!in_array($action, $this->actions, true)) {
+        if (! in_array($action, $this->actions, true)) {
             throw new InvalidArgumentException('Action does not exist.');
         }
-        if (!$this->sizes) {
+        if (! $this->sizes) {
             throw new InvalidArgumentException('Sizes is required.');
         }
-        if (!$this->fileName) {
+        if (! $this->fileName) {
             throw new InvalidArgumentException('Filename is required.');
         }
 
         $sourceMimeType = $this->sourceMimeType();
-        if (!$sourceMimeType || !$this->isSupport($sourceMimeType)) {
+        if (! $sourceMimeType || ! $this->isSupport($sourceMimeType)) {
             throw new RuntimeException("Format '{$sourceMimeType}' is not supported.");
         }
 
@@ -160,23 +196,29 @@ class ManipulationImage
     private function action(string $action): void
     {
         foreach ($this->sizes as $folderSize => $size) {
-            $width = $size['width'] ?? null;
-            $height = $size['height'] ?? null;
-
-            if (!$width && !$height) {
+            if (! $size->hasDimensions()) {
                 continue;
             }
 
-            $this->deleteOld($folderSize);
+            $this->renderSize($folderSize, $size, $size->action ?? $action);
+        }
+    }
 
-            switch ($action) {
-                case 'crop':
-                    $this->cropImage($folderSize, $width, $height, $size['position'] ?? 'center');
-                    break;
-                case 'resize':
-                    $this->resizeImage($folderSize, $width, $height);
-                    break;
-            }
+    private function renderSize(string $folderSize, ImageSize $size, string $action): void
+    {
+        if (! in_array($action, $this->actions, true)) {
+            throw new InvalidArgumentException('Action does not exist.');
+        }
+
+        $this->deleteOld($folderSize);
+
+        switch ($action) {
+            case 'crop':
+                $this->cropImage($folderSize, $size->width, $size->height, $size->position);
+                break;
+            case 'resize':
+                $this->resizeImage($folderSize, $size->width, $size->height);
+                break;
         }
     }
 
@@ -215,12 +257,12 @@ class ManipulationImage
 
     private function getFolder($folder): string
     {
-        return trim($this->folder.'/'.$folder, '/');
+        return trim($this->folder . '/' . $folder, '/');
     }
 
     private function checkOrCreateFolder(string $folder): void
     {
-        if (!$this->checkExist($folder)) {
+        if (! $this->checkExist($folder)) {
             Storage::disk($this->disk)->makeDirectory($folder);
         }
     }
@@ -233,13 +275,13 @@ class ManipulationImage
     private function deleteOld(string $folder): void
     {
         if ($this->overwrite) {
-            Storage::disk($this->disk)->delete($this->getFolder($folder).'/'.$this->overwrite);
+            Storage::disk($this->disk)->delete($this->getFolder($folder) . '/' . $this->overwrite);
         }
     }
 
     private function readImage(): ImageInterface
     {
-        return Image::withDriver(Driver::class)->read($this->sourcePath());
+        return Image::read($this->sourcePath());
     }
 
     private function sourcePath(): string

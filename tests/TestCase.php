@@ -25,8 +25,8 @@ class TestCase extends Orchestra
     {
         $app['config']->set('filesystems.disks.public', [
             'driver' => 'local',
-            'root' => sys_get_temp_dir().'/files-upload-tests',
-            'throw' => false,
+            'root'   => sys_get_temp_dir() . '/files-upload-tests',
+            'throw'  => false,
         ]);
 
         $app['config']->set('image.driver', 'gd');

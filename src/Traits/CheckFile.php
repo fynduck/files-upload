@@ -18,7 +18,7 @@ trait CheckFile
 
     private function isBase64(): bool
     {
-        return (bool)preg_match("/data:[a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+;base64,.*/", $this->file);
+        return (bool) preg_match("/data:[a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+;base64,.*/", $this->file);
     }
 
     private function isSvg(): bool
