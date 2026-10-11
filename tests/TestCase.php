@@ -29,6 +29,6 @@ class TestCase extends Orchestra
             'throw'  => false,
         ]);
 
-        $app['config']->set('image.driver', 'gd');
+        $app['config']->set('intervention-image.driver', \Intervention\Image\Drivers\Gd\Driver::class);
     }
 }

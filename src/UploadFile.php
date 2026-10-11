@@ -13,7 +13,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Laravel\Facades\Image;
 use Spatie\LaravelImageOptimizer\Facades\ImageOptimizer;
+use Throwable;
 
 class UploadFile
 {
@@ -42,9 +44,24 @@ class UploadFile
 
     protected ?bool $optimize = true;
 
+    /**
+     * Format chosen by the caller; null keeps the uploaded format. When set, the
+     * original and every size variant are re-encoded to it and share its extension.
+     */
     protected ?string $encode = null;
 
+    /**
+     * Format of the input itself (client extension, file extension or data URI type).
+     */
+    protected ?string $sourceExtension = null;
+
     protected ?int $quality = 90;
+
+    protected ?float $focalX = null;
+
+    protected ?float $focalY = null;
+
+    protected bool $upscale = true;
 
     protected ?bool $queue = null;
 
@@ -96,6 +113,13 @@ class UploadFile
         return $this->setEncodeFormat($extension);
     }
 
+    /**
+     * Name of the image this upload replaces (e.g. the model's current `image` value).
+     *
+     * Once the new file and its sizes are stored, the old original and the old file in
+     * every size folder (whatever extension it was encoded to) are deleted. The new file
+     * never reuses a name that is still on disk, so it gets a fresh name and URL.
+     */
     public function setOverwrite(?string $overwrite): self
     {
         $this->overwrite = $overwrite;
@@ -145,21 +169,15 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * Re-encode the original and every size to this format (jpg, png, gif, webp, avif…).
+     * Null, or a format the image driver cannot write, keeps the uploaded format.
+     */
     public function setEncodeFormat(?string $encode = null): self
     {
-        $candidate = $encode ? Str::lower($encode) : null;
+        $candidate = ManipulationOptions::normalizeEncode($encode);
 
-        if ($candidate && $this->isSupport($candidate)) {
-            $this->encode = $candidate;
-        } elseif ($this->isUploaded()) {
-            if ($this->file instanceof UploadedFile) {
-                $candidate = Str::lower($this->file->getClientOriginalExtension());
-            } elseif (is_string($this->file) && is_file($this->file)) {
-                $candidate = Str::lower(pathinfo($this->file, PATHINFO_EXTENSION));
-            }
-
-            $this->encode = $candidate && $this->isSupport($candidate) ? $candidate : null;
-        }
+        $this->encode = $candidate && $this->isSupport($candidate) ? $candidate : null;
 
         return $this;
     }
@@ -167,6 +185,29 @@ class UploadFile
     public function setEncodeQuality(?int $quality = 90): self
     {
         $this->quality = ManipulationOptions::normalizeQuality($quality);
+
+        return $this;
+    }
+
+    /**
+     * Crop sizes around this point instead of the size's position. Coordinates are
+     * fractions of the image (0,0 = top-left, 1,1 = bottom-right); null clears it.
+     */
+    public function setFocalPoint(int|float|null $x, int|float|null $y): self
+    {
+        $this->focalX = ManipulationOptions::normalizeFocal($x);
+        $this->focalY = ManipulationOptions::normalizeFocal($y);
+
+        return $this;
+    }
+
+    /**
+     * Whether sizes larger than the source may be enlarged (default) or are capped at
+     * the source dimensions.
+     */
+    public function setUpscale(bool $upscale = true): self
+    {
+        $this->upscale = $upscale;
 
         return $this;
     }
@@ -185,6 +226,12 @@ class UploadFile
         return $this;
     }
 
+    /**
+     * Store the file and its sizes; returns the stored file name (name + extension).
+     *
+     * Raster images get sizes and may be re-encoded. Anything else (SVG, video, PDF…)
+     * is stored as uploaded and its sizes are skipped.
+     */
     public function save(string $action = 'resize'): string
     {
         if (! isset($this->folder)) {
@@ -195,44 +242,108 @@ class UploadFile
             throw new \InvalidArgumentException('Filename is required.');
         }
 
-        if (! $this->encode) {
-            $this->setEncodeFormat();
-        }
+        $this->resolveSource();
 
-        if (! $this->encode) {
+        if (! $this->extension()) {
             throw new \InvalidArgumentException('Unsupported file format.');
         }
 
-        if (! $this->isbase64() && ! $this->isUploaded() && ! $this->isSvg()) {
-            throw new \InvalidArgumentException(
-                'Invalid file input. The file must be a base64 string, an uploaded file, or an SVG file.'
-            );
-        }
-
-        $this->deleteOld();
-
-        if ($this->isbase64()) {
-            $this->decodeBase64();
+        $isRasterImage = $this->isRasterImage();
+        if (! $isRasterImage) {
+            $this->encode = null;
         }
 
         $this->generateNameFile();
+        $this->storeOriginal($isRasterImage);
 
-        if (is_string($this->file)) {
-            Storage::disk($this->disk)->put($this->getPathFile(), $this->file);
-        } elseif ($this->isUploaded()) {
-            Storage::disk($this->disk)
-                ->putFileAs($this->folder, $this->file, $this->getFullName());
+        try {
+            if ($this->sizes && $isRasterImage) {
+                $this->processSizes($action);
+            }
+
+            $this->optimize($isRasterImage);
+        } catch (Throwable $exception) {
+            Storage::disk($this->disk)->delete($this->writtenPaths());
+
+            throw $exception;
         }
 
-        $pathImage = Storage::disk($this->disk)->path($this->getPathFile());
-
-        if ($this->sizes && ! $this->isSvg() && $this->isSupport()) {
-            $this->processSizes($action);
-        }
-
-        $this->optimize($pathImage);
+        $this->deleteReplaced();
 
         return $this->getFullName();
+    }
+
+    /**
+     * File extension the stored original and its sizes get.
+     */
+    private function extension(): ?string
+    {
+        return $this->encode ?? $this->sourceExtension;
+    }
+
+    private function resolveSource(): void
+    {
+        if ($this->isBase64()) {
+            $this->decodeBase64();
+
+            return;
+        }
+
+        if ($this->file instanceof UploadedFile) {
+            $this->sourceExtension = Str::lower($this->file->getClientOriginalExtension() ?: (string) $this->file->guessExtension()) ?: null;
+
+            return;
+        }
+
+        if ($this->isUploaded()) {
+            $this->sourceExtension = Str::lower(pathinfo($this->file, PATHINFO_EXTENSION)) ?: null;
+
+            return;
+        }
+
+        throw new \InvalidArgumentException('Unsupported file format.');
+    }
+
+    private function isRasterImage(): bool
+    {
+        return $this->sourceExtension !== 'svg' && ! $this->isSvg() && $this->isSupport($this->sourceExtension);
+    }
+
+    private function storeOriginal(bool $isRasterImage): void
+    {
+        $storage = Storage::disk($this->disk);
+
+        if ($isRasterImage && $this->encode && ! $this->isSameFormat($this->encode, (string) $this->sourceExtension)) {
+            $image = is_string($this->file) && ! $this->isUploaded()
+                ? Image::decodeBinary($this->file)
+                : Image::decodePath($this->file instanceof UploadedFile ? $this->file->getRealPath() : $this->file);
+
+            $storage->put(
+                $this->getPathFile(),
+                (string) $image->encodeUsingFileExtension($this->encode, quality: (int) $this->quality),
+            );
+
+            return;
+        }
+
+        if (is_string($this->file) && ! $this->isUploaded()) {
+            $storage->put($this->getPathFile(), $this->file);
+
+            return;
+        }
+
+        $storage->putFileAs($this->folder, $this->file, $this->getFullName());
+    }
+
+    private function isSameFormat(string $first, string $second): bool
+    {
+        $normalize = static fn (string $extension): string => match (Str::lower($extension)) {
+            'jpeg', 'jpe', 'pjpg', 'pjpeg' => 'jpg',
+            'tif'   => 'tiff',
+            default => Str::lower($extension),
+        };
+
+        return $normalize($first) === $normalize($second);
     }
 
     /**
@@ -324,7 +435,6 @@ class UploadFile
             disk: $this->disk,
             folder: $this->folder,
             name: $this->name,
-            overwrite: $this->overwrite,
             background: $this->background,
             blur: $this->blur,
             brightness: $this->brightness,
@@ -332,20 +442,84 @@ class UploadFile
             optimize: (bool) $this->optimize,
             encode: $this->encode,
             quality: (int) $this->quality,
+            focalX: $this->focalX,
+            focalY: $this->focalY,
+            upscale: $this->upscale,
         );
     }
 
-    private function optimize($imagePath): void
+    private function optimize(bool $isRasterImage): void
     {
-        if ($this->optimize && ! $this->sizes && ! $this->isSvg()) {
-            ImageOptimizer::optimize($imagePath);
+        if (! $this->optimize || $this->sizes || ! $isRasterImage || ! class_exists(ImageOptimizer::class)) {
+            return;
+        }
+
+        $absolutePath = Storage::disk($this->disk)->path($this->getPathFile());
+        if (is_file($absolutePath)) {
+            ImageOptimizer::optimize($absolutePath);
         }
     }
 
-    private function deleteOld(): void
+    /**
+     * Delete the image named by setOverwrite(): the original and the same-named file in
+     * every size folder, in any image extension — sizes removed from the settings since,
+     * or encoded to another format, included. Files the new upload just wrote are kept.
+     */
+    private function deleteReplaced(): void
     {
-        if ($this->overwrite) {
-            Storage::disk($this->disk)->delete($this->folder . '/' . $this->overwrite);
+        $oldName = $this->overwrite ? basename(trim($this->overwrite)) : '';
+        if ($oldName === '' || $oldName === $this->getFullName()) {
+            return;
         }
+
+        $storage = Storage::disk($this->disk);
+        $oldBaseName = pathinfo($oldName, PATHINFO_FILENAME);
+        $paths = [$this->pathInFolder($this->folder, $oldName)];
+
+        foreach ($this->sizeFolders() as $sizeFolder) {
+            $paths[] = $this->pathInFolder($sizeFolder, $oldName);
+            foreach ($this->imageExtensions as $extension) {
+                $paths[] = $this->pathInFolder($sizeFolder, "{$oldBaseName}.{$extension}");
+            }
+        }
+
+        $paths = array_values(array_diff(array_unique($paths), $this->writtenPaths()));
+        $storage->delete($paths);
+    }
+
+    /**
+     * Size folders to clean: every folder under the upload folder, plus the requested
+     * size keys (the only ones when uploading to the disk root, so unrelated top-level
+     * folders are never touched).
+     *
+     * @return list<string>
+     */
+    private function sizeFolders(): array
+    {
+        $folders = array_map(fn (string $sizeKey): string => $this->pathInFolder($this->folder, $sizeKey), array_keys($this->sizes));
+
+        if ($this->folder !== '') {
+            $folders = [...$folders, ...Storage::disk($this->disk)->directories($this->folder)];
+        }
+
+        return array_values(array_unique($folders));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function writtenPaths(): array
+    {
+        $paths = [$this->getPathFile()];
+        foreach (array_keys($this->sizes) as $sizeKey) {
+            $paths[] = $this->pathInFolder($this->pathInFolder($this->folder, (string) $sizeKey), $this->getFullName());
+        }
+
+        return $paths;
+    }
+
+    private function pathInFolder(string $folder, string $name): string
+    {
+        return trim(trim($folder, '/') . '/' . $name, '/');
     }
 }

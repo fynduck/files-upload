@@ -13,14 +13,9 @@ class UploadFileTest extends TestCase
     {
         Storage::fake('public');
 
-        $file = UploadedFile::fake()->create('test.txt', 1, 'text/plain');
-        $upload = $this->getMockBuilder(UploadFile::class)
-            ->setConstructorArgs([$file])
-            ->onlyMethods(['isSupport'])
-            ->getMock();
-        $upload->method('isSupport')->willReturn(true);
+        $file = UploadedFile::fake()->image('test.png', 20, 20);
 
-        $result = $upload
+        $result = UploadFile::file($file)
             ->setDisk('public')
             ->setFolder('uploads')
             ->setName('legacy-extension')
@@ -30,6 +25,7 @@ class UploadFileTest extends TestCase
 
         $this->assertSame('legacy_extension.jpg', $result);
         Storage::disk('public')->assertExists('uploads/legacy_extension.jpg');
+        $this->assertSame('image/jpeg', Storage::disk('public')->mimeType('uploads/legacy_extension.jpg'));
     }
 
     public function test_it_requires_filename_before_save(): void
@@ -60,13 +56,7 @@ class UploadFileTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid base64 payload.');
 
-        $upload = $this->getMockBuilder(UploadFile::class)
-            ->setConstructorArgs(['data:image/png;base64,not-valid-base64'])
-            ->onlyMethods(['isSupport'])
-            ->getMock();
-        $upload->method('isSupport')->willReturn(true);
-
-        $upload
+        UploadFile::file('data:image/png;base64,not-valid-base64')
             ->setDisk('public')
             ->setFolder('uploads')
             ->setName('bad-base64')

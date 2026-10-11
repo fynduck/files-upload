@@ -27,7 +27,7 @@ class GenerateImageSizesJobTest extends TestCase
             $this->markTestSkipped('No image driver (GD or Imagick) available to render variants.');
         }
 
-        config(['image.driver' => $driver]);
+        config(['intervention-image.driver' => $driver]);
     }
 
     public function test_it_renders_a_size_variant_and_fires_the_event(): void
@@ -35,8 +35,8 @@ class GenerateImageSizesJobTest extends TestCase
         Storage::fake('public');
         Event::fake([ImageSizesGenerated::class]);
 
-        $source = \Intervention\Image\Laravel\Facades\Image::create(200, 200)
-            ->encodeByExtension('jpg');
+        $source = \Intervention\Image\Laravel\Facades\Image::createImage(200, 200)
+            ->encodeUsingFileExtension('jpg');
         Storage::disk('public')->put('src.jpg', (string) $source);
 
         $options = new ManipulationOptions(

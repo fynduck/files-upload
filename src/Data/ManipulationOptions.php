@@ -25,6 +25,9 @@ class ManipulationOptions
         public bool $optimize = true,
         public ?string $encode = null,
         public int $quality = 90,
+        public ?float $focalX = null,
+        public ?float $focalY = null,
+        public bool $upscale = true,
     ) {}
 
     public static function fromArray(array $data): self
@@ -41,6 +44,9 @@ class ManipulationOptions
             (bool) ($data['optimize'] ?? true),
             self::normalizeEncode($data['encode'] ?? null),
             self::normalizeQuality($data['quality'] ?? 90),
+            self::normalizeFocal($data['focal_x'] ?? null),
+            self::normalizeFocal($data['focal_y'] ?? null),
+            (bool) ($data['upscale'] ?? true),
         );
     }
 
@@ -71,6 +77,23 @@ class ManipulationOptions
         return min($quality, 100);
     }
 
+    /**
+     * A focal point coordinate is a fraction of the image side (0 = left/top, 1 = right/bottom).
+     */
+    public static function normalizeFocal(int|float|string|null $coordinate): ?float
+    {
+        if ($coordinate === null || $coordinate === '' || ! is_numeric($coordinate)) {
+            return null;
+        }
+
+        return max(0.0, min(1.0, (float) $coordinate));
+    }
+
+    public function hasFocalPoint(): bool
+    {
+        return $this->focalX !== null && $this->focalY !== null;
+    }
+
     public static function normalizeEncode(?string $encode): ?string
     {
         return $encode ? Str::lower($encode) : null;
@@ -90,6 +113,9 @@ class ManipulationOptions
             'optimize'   => $this->optimize,
             'encode'     => $this->encode,
             'quality'    => $this->quality,
+            'focal_x'    => $this->focalX,
+            'focal_y'    => $this->focalY,
+            'upscale'    => $this->upscale,
         ];
     }
 }

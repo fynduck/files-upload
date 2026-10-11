@@ -6,7 +6,6 @@ use Fynduck\FilesUpload\Data\ImageSize;
 use Fynduck\FilesUpload\Data\ManipulationOptions;
 use Fynduck\FilesUpload\Traits\CheckFile;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\FileExtension;
 use Intervention\Image\Interfaces\ImageInterface;
 use Intervention\Image\Laravel\Facades\Image;
 use InvalidArgumentException;
@@ -48,6 +47,12 @@ class ManipulationImage
 
     protected ?int $quality = 90;
 
+    protected ?float $focalX = null;
+
+    protected ?float $focalY = null;
+
+    protected bool $upscale = true;
+
     public static function load(string $pathImage): self
     {
         return new static($pathImage);
@@ -72,6 +77,9 @@ class ManipulationImage
         $this->optimize = $options->optimize;
         $this->encode = $options->encode;
         $this->quality = $options->quality;
+        $this->focalX = $options->focalX;
+        $this->focalY = $options->focalY;
+        $this->upscale = $options->upscale;
 
         return $this;
     }
@@ -173,6 +181,25 @@ class ManipulationImage
         return $this;
     }
 
+    /**
+     * Crop sizes around this point (fractions of the image, 0,0 = top-left) instead of
+     * the size's position; null clears it.
+     */
+    public function setFocalPoint(int|float|null $x, int|float|null $y): self
+    {
+        $this->focalX = ManipulationOptions::normalizeFocal($x);
+        $this->focalY = ManipulationOptions::normalizeFocal($y);
+
+        return $this;
+    }
+
+    public function setUpscale(bool $upscale = true): self
+    {
+        $this->upscale = $upscale;
+
+        return $this;
+    }
+
     public function save(string $action = 'resize'): void
     {
         if (! in_array($action, $this->actions, true)) {
@@ -226,10 +253,12 @@ class ManipulationImage
     {
         $image = $this->readImage();
 
-        if ($width && $height) {
-            $image->cover($width, $height, position: $position);
+        if (! $width || ! $height) {
+            $this->scaleImage($image, $width, $height);
+        } elseif (($this->focalX !== null && $this->focalY !== null) || ! $this->upscale) {
+            $this->cropAroundFocalPoint($image, $width, $height);
         } else {
-            $image->scale($width, $height);
+            $image->cover($width, $height, $position);
         }
 
         $this->applyEffectsAndStore($image, $folderSize);
@@ -238,57 +267,89 @@ class ManipulationImage
     private function resizeImage(string $folderSize, ?int $width, ?int $height): void
     {
         $image = $this->readImage();
-        $image->scale($width, $height);
+        $this->scaleImage($image, $width, $height);
 
         $this->applyEffectsAndStore($image, $folderSize);
     }
 
-    public function optimize($imagePath): void
+    private function scaleImage(ImageInterface $image, ?int $width, ?int $height): void
     {
-        if ($this->optimize) {
+        $this->upscale ? $image->scale($width, $height) : $image->scaleDown($width, $height);
+    }
+
+    /**
+     * Cut the largest area of the target ratio centred on the focal point (centre when
+     * none is set), kept inside the image, then resize it to the target size. Without
+     * upscaling a source smaller than the target keeps the crop's own size.
+     */
+    private function cropAroundFocalPoint(ImageInterface $image, int $width, int $height): void
+    {
+        $sourceWidth = $image->width();
+        $sourceHeight = $image->height();
+        $targetRatio = $width / $height;
+
+        if ($sourceWidth / $sourceHeight > $targetRatio) {
+            $cropHeight = $sourceHeight;
+            $cropWidth = max(1, (int) round($sourceHeight * $targetRatio));
+        } else {
+            $cropWidth = $sourceWidth;
+            $cropHeight = max(1, (int) round($sourceWidth / $targetRatio));
+        }
+
+        $offsetX = $this->cropOffset($this->focalX ?? 0.5, $sourceWidth, $cropWidth);
+        $offsetY = $this->cropOffset($this->focalY ?? 0.5, $sourceHeight, $cropHeight);
+
+        $image->crop($cropWidth, $cropHeight, $offsetX, $offsetY);
+
+        if ($this->upscale || $cropWidth > $width) {
+            $image->resize($width, $height);
+        }
+    }
+
+    private function cropOffset(float $focal, int $sourceLength, int $cropLength): int
+    {
+        $offset = (int) round($focal * $sourceLength - $cropLength / 2);
+
+        return max(0, min($offset, $sourceLength - $cropLength));
+    }
+
+    public function optimize(string $imagePath): void
+    {
+        if ($this->optimize && class_exists(ImageOptimizer::class) && is_file($imagePath)) {
             ImageOptimizer::optimize($imagePath);
         }
     }
 
-    private function diskFolder(string $folder): string
-    {
-        return Storage::disk($this->disk)->path($this->getFolder($folder));
-    }
-
-    private function getFolder($folder): string
+    private function getFolder(string $folder): string
     {
         return trim($this->folder . '/' . $folder, '/');
     }
 
-    private function checkOrCreateFolder(string $folder): void
-    {
-        if (! $this->checkExist($folder)) {
-            Storage::disk($this->disk)->makeDirectory($folder);
-        }
-    }
-
-    private function checkExist($path): bool
-    {
-        return Storage::disk($this->disk)->exists($path);
-    }
-
+    /**
+     * Delete the size's file named by setOverwrite(), in whatever image extension it was
+     * stored with.
+     */
     private function deleteOld(string $folder): void
     {
-        if ($this->overwrite) {
-            Storage::disk($this->disk)->delete($this->getFolder($folder) . '/' . $this->overwrite);
+        if (! $this->overwrite) {
+            return;
         }
+
+        $sizeFolder = $this->getFolder($folder);
+        $oldBaseName = pathinfo($this->overwrite, PATHINFO_FILENAME);
+        $paths = [trim($sizeFolder . '/' . basename($this->overwrite), '/')];
+        foreach ($this->imageExtensions as $extension) {
+            $paths[] = trim("{$sizeFolder}/{$oldBaseName}.{$extension}", '/');
+        }
+
+        Storage::disk($this->disk)->delete(array_values(array_unique($paths)));
     }
 
     private function readImage(): ImageInterface
     {
-        return Image::read($this->sourcePath());
-    }
-
-    private function sourcePath(): string
-    {
         return $this->isAbsolutePath($this->pathImage)
-            ? $this->pathImage
-            : Storage::disk($this->disk)->path(trim($this->pathImage, '/'));
+            ? Image::decodePath($this->pathImage)
+            : Image::decodeBinary(Storage::disk($this->disk)->get(trim($this->pathImage, '/')));
     }
 
     private function sourceMimeType(): ?string
@@ -314,20 +375,24 @@ class ManipulationImage
             $image->brightness($this->brightness);
         }
         if ($this->greyscale) {
-            $image->greyscale();
-        }
-        if ($this->encode) {
-            $image->encodeByExtension(FileExtension::create($this->encode));
+            $image->grayscale();
         }
 
-        $this->checkOrCreateFolder($this->getFolder($folderSize));
-        $imagePath = $this->generateImagePath($this->diskFolder($folderSize), $image->origin()->fileExtension());
-        $image->save($imagePath, quality: $this->quality);
-        $this->optimize($imagePath);
+        $relativePath = $this->getFolder($folderSize) . '/' . $this->fileName . '.' . $this->extension();
+        $encoded = $image->encodeUsingFileExtension($this->extension(), quality: (int) $this->quality);
+        Storage::disk($this->disk)->put($relativePath, (string) $encoded);
+
+        if ($this->optimize) {
+            $this->optimize(Storage::disk($this->disk)->path($relativePath));
+        }
     }
 
-    private function generateImagePath(string $imgFolder, string $extension): string
+    /**
+     * The encode format, or the source's own extension — the same rule UploadFile uses
+     * for the original, so the original and its sizes always share one extension.
+     */
+    private function extension(): string
     {
-        return "{$imgFolder}/{$this->fileName}." . ($this->encode ?: $extension);
+        return $this->encode ?: strtolower(pathinfo($this->pathImage, PATHINFO_EXTENSION));
     }
 }

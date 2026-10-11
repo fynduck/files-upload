@@ -26,20 +26,25 @@ trait GenerateData
 
     private function generatePathToFile(string $name): string
     {
-        return ($this->folder ? trim($this->folder, '/') . '/' : '') . $name . '.' . $this->encode;
+        return ($this->folder ? trim($this->folder, '/') . '/' : '') . $name . '.' . $this->extension();
     }
 
+    /**
+     * Decode a data URI payload into raw bytes; its media type gives the source format.
+     */
     private function decodeBase64(): void
     {
-        [$type, $this->file] = explode(';', $this->file);
-        [, $this->file] = explode(',', $this->file);
-        $decoded = base64_decode($this->file, true);
+        [$type, $payload] = explode(';', $this->file, 2);
+        [, $payload] = explode(',', $payload, 2);
+        $decoded = base64_decode($payload, true);
         if ($decoded === false) {
             throw new \InvalidArgumentException('Invalid base64 payload.');
         }
 
+        $subtype = Str::lower(explode('/', $type)[1] ?? '');
+
         $this->file = $decoded;
-        $this->setEncodeFormat(explode('/', $type)[1]);
+        $this->sourceExtension = $subtype === 'svg+xml' ? 'svg' : $subtype;
     }
 
     private function getPathFile(): string
@@ -49,6 +54,6 @@ trait GenerateData
 
     private function getFullName(): string
     {
-        return "$this->name.$this->encode";
+        return "$this->name.{$this->extension()}";
     }
 }

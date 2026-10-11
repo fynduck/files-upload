@@ -14,13 +14,7 @@ class QueuedUploadTest extends TestCase
 {
     private function uploader(UploadedFile $file): UploadFile
     {
-        $upload = $this->getMockBuilder(UploadFile::class)
-            ->setConstructorArgs([$file])
-            ->onlyMethods(['isSupport'])
-            ->getMock();
-        $upload->method('isSupport')->willReturn(true);
-
-        return $upload;
+        return UploadFile::file($file);
     }
 
     private function sizes(): array

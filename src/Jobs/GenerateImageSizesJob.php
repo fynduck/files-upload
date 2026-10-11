@@ -65,12 +65,12 @@ class GenerateImageSizesJob implements ShouldQueue
         }
     }
 
-    public function failed(Throwable $e): void
+    public function failed(Throwable $exception): void
     {
         logger()->error('FilesUpload: image size generation failed', [
             'source' => $this->sourcePath,
             'sizes'  => array_keys($this->sizes),
-            'error'  => $e->getMessage(),
+            'error'  => $exception->getMessage(),
         ]);
     }
 }

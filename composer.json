@@ -1,6 +1,6 @@
 {
   "name": "fynduck/files-upload",
-  "version": "4.1.0",
+  "version": "5.0.0",
   "description": "Save & resize & crop images",
   "keywords": [
     "fynduck",
@@ -17,21 +17,26 @@
     }
   ],
   "require": {
-    "php": ">=8.1",
-    "illuminate/bus": "^9.0|^10.0|^11.0|^12.0|^13.0",
-    "illuminate/contracts": "^9.0|^10.0|^11.0|^12.0|^13.0",
-    "illuminate/queue": "^9.0|^10.0|^11.0|^12.0|^13.0",
-    "illuminate/support": "^9.0|^10.0|^11.0|^12.0|^13.0",
-    "spatie/laravel-image-optimizer": "^1.8",
-    "intervention/image-laravel": "^1.5",
-    "intervention/image-driver-vips": "^1.0",
-    "ext-fileinfo": "*"
+    "php": "^8.3",
+    "ext-fileinfo": "*",
+    "illuminate/bus": "^10.0|^11.0|^12.0|^13.0",
+    "illuminate/contracts": "^10.0|^11.0|^12.0|^13.0",
+    "illuminate/queue": "^10.0|^11.0|^12.0|^13.0",
+    "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
+    "intervention/image": "^4.3",
+    "intervention/image-laravel": "^4.1"
   },
   "require-dev": {
     "laravel/pint": "1.20",
-    "orchestra/testbench": "^7.5|^8.0|^9.0|^10.0|^11.0|^12.0",
-    "phpunit/phpunit": "^9.5|^10.5|^11.5.3",
-    "rector/rector": "^2.4"
+    "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
+    "phpunit/phpunit": "^10.5|^11.5.3|^12.0",
+    "rector/rector": "^2.4",
+    "spatie/laravel-image-optimizer": "^1.8"
+  },
+  "suggest": {
+    "spatie/laravel-image-optimizer": "Optimize stored images (setOptimize). Needs jpegoptim/pngquant/... binaries.",
+    "intervention/image-driver-vips": "Use libvips as the image driver (set intervention-image.driver).",
+    "ext-exif": "Read EXIF orientation so photos are stored upright."
   },
   "autoload": {
     "psr-4": {

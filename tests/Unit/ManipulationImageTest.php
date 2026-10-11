@@ -9,17 +9,10 @@ class ManipulationImageTest extends TestCase
 {
     public function test_it_supports_legacy_set_extension_alias(): void
     {
-        $manipulation = $this->getMockBuilder(ManipulationImage::class)
-            ->setConstructorArgs(['images/source.png'])
-            ->onlyMethods(['isSupport'])
-            ->getMock();
-        $manipulation->method('isSupport')->willReturn(true);
-
-        $manipulation->setExtension('webp');
+        $manipulation = ManipulationImage::load('images/source.png')->setExtension('webp');
 
         $reflection = new \ReflectionClass($manipulation);
         $property = $reflection->getProperty('encode');
-        $property->setAccessible(true);
 
         $this->assertSame('webp', $property->getValue($manipulation));
     }
