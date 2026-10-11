@@ -35,7 +35,7 @@ UploadFile::file($request->file('file')) //or $request->get('base64'), required
     ->setBlur(0) //optional, use values between 0 and 100
     ->setBrightness(0) //optional, use values between -100 and +100. brightness 0 for no change
     ->setGreyscale(true) //optional true or false default is false
-    ->setOptimize(true) //optional
+    ->setOptimize(true) //optional, default true (see Optimizing)
     ->setEncodeFormat('webp') //optional, re-encode the original and every size: jpg, png, gif, webp, avif
     ->setEncodeQuality() //optional, use values between 0 and 100
     ->queue() //optional, generate sizes in the background (see below)
@@ -69,6 +69,25 @@ old file in every size folder deleted, whatever extension it was encoded to and
 including size folders no longer in `$sizes`. Other images in the folder are not touched.
 A failed upload leaves the old image in place. The new file never reuses a name that is
 still on disk (it gets a `_random` suffix), so browsers and CDNs see a new URL.
+
+**Optimizing**
+
+`setOptimize(true)` (the default, `files-upload.optimize`) needs no extra software:
+
+- metadata is stripped from every encoded image (EXIF, GPS position, comments; the colour
+  profile is kept);
+- JPEGs are progressive (smaller, and they show a preview while loading);
+- a size the source already fits (nothing resized, no effects) never ends up larger than
+  the source: re-encoding an already-compressed PNG can make it several times bigger,
+  so the source bytes are kept instead.
+
+The biggest saving is the format: WebP at quality 75-85 is usually 40-70% smaller than
+JPEG, and AVIF smaller still. Choose it with `setEncodeFormat('webp')` and
+`setEncodeQuality(80)`.
+
+If `spatie/laravel-image-optimizer` is installed, its binaries (jpegoptim, pngquant,
+cwebp…) also run over the stored files, losslessly squeezing a few more percent and
+optimizing originals that are kept as uploaded.
 
 **Focal point**
 
@@ -157,8 +176,8 @@ ManipulationImage::load('image_name.jpg')
   config is now `config/intervention-image.php` (`IMAGE_DRIVER` env); a published 4.x
   `config/image.php` keeps working.
 - `spatie/laravel-image-optimizer` and `intervention/image-driver-vips` are no longer
-  required. Install the optimizer to keep `setOptimize(true)` working; without it,
-  optimizing is skipped.
+  required. `setOptimize(true)` now optimizes without them (see Optimizing); install the
+  optimizer to also run its binaries.
 - `setEncodeFormat()` now really re-encodes the original. In 4.x the original kept its
   uploaded bytes under the new extension. Without an encode format the uploaded format
   is kept (4.x set it from the client extension).

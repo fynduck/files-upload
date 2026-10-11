@@ -313,14 +313,14 @@ class UploadFile
     {
         $storage = Storage::disk($this->disk);
 
-        if ($isRasterImage && $this->encode && ! $this->isSameFormat($this->encode, (string) $this->sourceExtension)) {
+        if ($isRasterImage && $this->encode && ! ImageEncoder::isSameFormat($this->encode, (string) $this->sourceExtension)) {
             $image = is_string($this->file) && ! $this->isUploaded()
                 ? Image::decodeBinary($this->file)
                 : Image::decodePath($this->file instanceof UploadedFile ? $this->file->getRealPath() : $this->file);
 
             $storage->put(
                 $this->getPathFile(),
-                (string) $image->encodeUsingFileExtension($this->encode, quality: (int) $this->quality),
+                ImageEncoder::encode($image, $this->encode, (int) $this->quality, (bool) $this->optimize),
             );
 
             return;
@@ -333,17 +333,6 @@ class UploadFile
         }
 
         $storage->putFileAs($this->folder, $this->file, $this->getFullName());
-    }
-
-    private function isSameFormat(string $first, string $second): bool
-    {
-        $normalize = static fn (string $extension): string => match (Str::lower($extension)) {
-            'jpeg', 'jpe', 'pjpg', 'pjpeg' => 'jpg',
-            'tif'   => 'tiff',
-            default => Str::lower($extension),
-        };
-
-        return $normalize($first) === $normalize($second);
     }
 
     /**

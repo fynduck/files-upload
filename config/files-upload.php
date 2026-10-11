@@ -8,7 +8,9 @@ return [
     'disk' => 'public',
 
     /*
-     * Run the image optimizer by default.
+     * Optimize images by default: strip metadata, progressive JPEG, never store a size
+     * larger than its unchanged source. spatie/laravel-image-optimizer also runs when
+     * it is installed.
      */
     'optimize' => true,
 

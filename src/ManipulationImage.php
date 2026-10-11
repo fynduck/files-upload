@@ -53,6 +53,11 @@ class ManipulationImage
 
     protected bool $upscale = true;
 
+    /**
+     * Source bytes, read once per save() and decoded for each size.
+     */
+    private ?string $sourceBytes = null;
+
     public static function load(string $pathImage): self
     {
         return new static($pathImage);
@@ -217,7 +222,11 @@ class ManipulationImage
             throw new RuntimeException("Format '{$sourceMimeType}' is not supported.");
         }
 
-        $this->action($action);
+        try {
+            $this->action($action);
+        } finally {
+            $this->sourceBytes = null;
+        }
     }
 
     private function action(string $action): void
@@ -239,20 +248,21 @@ class ManipulationImage
 
         $this->deleteOld($folderSize);
 
-        switch ($action) {
-            case 'crop':
-                $this->cropImage($folderSize, $size->width, $size->height, $size->position);
-                break;
-            case 'resize':
-                $this->resizeImage($folderSize, $size->width, $size->height);
-                break;
-        }
+        $image = $this->readImage();
+        $sourceWidth = $image->width();
+        $sourceHeight = $image->height();
+
+        match ($action) {
+            'crop'   => $this->cropImage($image, $size->width, $size->height, $size->position),
+            'resize' => $this->scaleImage($image, $size->width, $size->height),
+        };
+
+        $isResized = $image->width() !== $sourceWidth || $image->height() !== $sourceHeight;
+        $this->applyEffectsAndStore($image, $folderSize, $isResized);
     }
 
-    private function cropImage(string $folderSize, ?int $width, ?int $height, string $position): void
+    private function cropImage(ImageInterface $image, ?int $width, ?int $height, string $position): void
     {
-        $image = $this->readImage();
-
         if (! $width || ! $height) {
             $this->scaleImage($image, $width, $height);
         } elseif (($this->focalX !== null && $this->focalY !== null) || ! $this->upscale) {
@@ -260,16 +270,6 @@ class ManipulationImage
         } else {
             $image->cover($width, $height, $position);
         }
-
-        $this->applyEffectsAndStore($image, $folderSize);
-    }
-
-    private function resizeImage(string $folderSize, ?int $width, ?int $height): void
-    {
-        $image = $this->readImage();
-        $this->scaleImage($image, $width, $height);
-
-        $this->applyEffectsAndStore($image, $folderSize);
     }
 
     private function scaleImage(ImageInterface $image, ?int $width, ?int $height): void
@@ -347,9 +347,11 @@ class ManipulationImage
 
     private function readImage(): ImageInterface
     {
-        return $this->isAbsolutePath($this->pathImage)
-            ? Image::decodePath($this->pathImage)
-            : Image::decodeBinary(Storage::disk($this->disk)->get(trim($this->pathImage, '/')));
+        $this->sourceBytes ??= $this->isAbsolutePath($this->pathImage)
+            ? (string) file_get_contents($this->pathImage)
+            : (string) Storage::disk($this->disk)->get(trim($this->pathImage, '/'));
+
+        return Image::decodeBinary($this->sourceBytes);
     }
 
     private function sourceMimeType(): ?string
@@ -366,8 +368,10 @@ class ManipulationImage
         return str_starts_with($path, '/') || preg_match('/^[A-Za-z]:\\\\/', $path) === 1;
     }
 
-    private function applyEffectsAndStore(ImageInterface $image, string $folderSize): void
+    private function applyEffectsAndStore(ImageInterface $image, string $folderSize, bool $isResized): void
     {
+        $hasEffects = $this->blur || $this->brightness || $this->greyscale;
+
         if ($this->blur) {
             $image->blur($this->blur);
         }
@@ -379,12 +383,29 @@ class ManipulationImage
         }
 
         $relativePath = $this->getFolder($folderSize) . '/' . $this->fileName . '.' . $this->extension();
-        $encoded = $image->encodeUsingFileExtension($this->extension(), quality: (int) $this->quality);
-        Storage::disk($this->disk)->put($relativePath, (string) $encoded);
+        $bytes = ImageEncoder::encode($image, $this->extension(), (int) $this->quality, (bool) $this->optimize);
+
+        if ($this->optimize && ! $isResized && ! $hasEffects && $this->isSourceReusable($image)) {
+            $bytes = ImageEncoder::smallest($bytes, (string) $this->sourceBytes);
+        }
+
+        Storage::disk($this->disk)->put($relativePath, $bytes);
 
         if ($this->optimize) {
             $this->optimize(Storage::disk($this->disk)->path($relativePath));
         }
+    }
+
+    /**
+     * The source bytes can stand in for an unchanged size when they are the same format
+     * and upright as stored (no EXIF rotation that decoding applied).
+     */
+    private function isSourceReusable(ImageInterface $image): bool
+    {
+        $orientation = (int) ($image->exif('IFD0.Orientation') ?? 1);
+
+        return $orientation <= 1
+            && ImageEncoder::isSameFormat($this->extension(), (string) pathinfo($this->pathImage, PATHINFO_EXTENSION));
     }
 
     /**
