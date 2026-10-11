@@ -35,7 +35,7 @@ class GenerateImageSizesJobTest extends TestCase
         Storage::fake('public');
         Event::fake([ImageSizesGenerated::class]);
 
-        $source = \Intervention\Image\Laravel\Facades\Image::create(200, 200)
+        $source = \Intervention\Image\ImageManager::gd()->create(200, 200)
             ->encodeByExtension('jpg');
         Storage::disk('public')->put('src.jpg', (string) $source);
 

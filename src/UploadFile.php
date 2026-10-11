@@ -96,6 +96,13 @@ class UploadFile
         return $this->setEncodeFormat($extension);
     }
 
+    /**
+     * Name of the image this upload replaces (e.g. the model's current `image` value).
+     *
+     * Once the new file and its sizes are stored, the old original and the old file in
+     * every size folder (whatever extension it was encoded to) are deleted. The new file
+     * never reuses a name that is still on disk, so it gets a fresh name and URL.
+     */
     public function setOverwrite(?string $overwrite): self
     {
         $this->overwrite = $overwrite;
@@ -209,8 +216,6 @@ class UploadFile
             );
         }
 
-        $this->deleteOld();
-
         if ($this->isbase64()) {
             $this->decodeBase64();
         }
@@ -231,6 +236,7 @@ class UploadFile
         }
 
         $this->optimize($pathImage);
+        $this->deleteReplaced();
 
         return $this->getFullName();
     }
@@ -324,7 +330,6 @@ class UploadFile
             disk: $this->disk,
             folder: $this->folder,
             name: $this->name,
-            overwrite: $this->overwrite,
             background: $this->background,
             blur: $this->blur,
             brightness: $this->brightness,
@@ -342,10 +347,64 @@ class UploadFile
         }
     }
 
-    private function deleteOld(): void
+    /**
+     * Delete the image named by setOverwrite(): the original and the same-named file in
+     * every size folder, in any image extension — sizes removed from the settings since,
+     * or encoded to another format, included. Files the new upload just wrote are kept.
+     */
+    private function deleteReplaced(): void
     {
-        if ($this->overwrite) {
-            Storage::disk($this->disk)->delete($this->folder . '/' . $this->overwrite);
+        $oldName = $this->overwrite ? basename(trim($this->overwrite)) : '';
+        if ($oldName === '' || $oldName === $this->getFullName()) {
+            return;
         }
+
+        $oldBaseName = pathinfo($oldName, PATHINFO_FILENAME);
+        $paths = [$this->pathInFolder($this->folder, $oldName)];
+
+        foreach ($this->sizeFolders() as $sizeFolder) {
+            $paths[] = $this->pathInFolder($sizeFolder, $oldName);
+            foreach ($this->imageExtensions as $extension) {
+                $paths[] = $this->pathInFolder($sizeFolder, "{$oldBaseName}.{$extension}");
+            }
+        }
+
+        Storage::disk($this->disk)->delete(array_values(array_diff(array_unique($paths), $this->writtenPaths())));
+    }
+
+    /**
+     * Size folders to clean: every folder under the upload folder, plus the requested
+     * size keys (the only ones when uploading to the disk root, so unrelated top-level
+     * folders are never touched).
+     *
+     * @return list<string>
+     */
+    private function sizeFolders(): array
+    {
+        $folders = array_map(fn ($sizeKey): string => $this->pathInFolder($this->folder, (string) $sizeKey), array_keys($this->sizes));
+
+        if ($this->folder !== '') {
+            $folders = array_merge($folders, Storage::disk($this->disk)->directories($this->folder));
+        }
+
+        return array_values(array_unique($folders));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function writtenPaths(): array
+    {
+        $paths = [$this->getPathFile()];
+        foreach (array_keys($this->sizes) as $sizeKey) {
+            $paths[] = $this->pathInFolder($this->pathInFolder($this->folder, (string) $sizeKey), $this->getFullName());
+        }
+
+        return $paths;
+    }
+
+    private function pathInFolder(string $folder, string $name): string
+    {
+        return trim(trim($folder, '/') . '/' . $name, '/');
     }
 }
