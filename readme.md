@@ -83,7 +83,7 @@ ManipulationImage::load($pathImage)
             ->setFolder('Post')
             ->setSizes(['xs' => ['width' => 100, 'height' => 100]])
             ->setName('image_name.jpg') //name with extension
-            ->setOverwrite('old_name.jpg') //optional, after saving delete this old image and all its sizes
+            ->setOverwrite('old_name.jpg') //optional, remove this name from each size folder first
             ->setBackground('#000000') //optional
             ->setBlur(0) //optional, use values between 0 and 100
             ->setBrightness(0) //optional, use values between -100 and +100. brightness 0 for no change
