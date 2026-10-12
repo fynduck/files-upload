@@ -24,7 +24,8 @@
     "illuminate/queue": "^10.0|^11.0|^12.0|^13.0",
     "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
     "intervention/image": "^4.3",
-    "intervention/image-laravel": "^4.1"
+    "intervention/image-laravel": "^4.1",
+    "symfony/process": "^6.2|^7.0|^8.0"
   },
   "require-dev": {
     "laravel/pint": "1.20",

@@ -89,6 +89,20 @@ If `spatie/laravel-image-optimizer` is installed, its binaries (jpegoptim, pngqu
 cwebp…) also run over the stored files, losslessly squeezing a few more percent and
 optimizing originals that are kept as uploaded.
 
+**Checking the server**
+
+Composer cannot require programs like `jpegoptim`, so check them after installing or in
+your deploy script:
+
+```bash
+php artisan files-upload:check           # driver, writable formats, optimizer binaries
+php artisan files-upload:check --strict  # exit code 1 when something is missing
+php artisan about --only="files upload"  # short summary
+```
+
+Missing binaries only matter when `spatie/laravel-image-optimizer` is installed; built-in
+optimizing needs none of them.
+
 **Focal point**
 
 `crop` sizes are cut to their exact width/height ratio. By default the crop is anchored
