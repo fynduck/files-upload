@@ -150,6 +150,7 @@ php artisan vendor:publish --tag=files-upload-config
 **Make new sizes from image**
 
 ```php
+use Fynduck\FilesUpload\Enums\ImageAction;
 use Fynduck\FilesUpload\ManipulationImage;
 
 ManipulationImage::load($pathImage)
@@ -166,7 +167,7 @@ ManipulationImage::load($pathImage)
             ->setOptimize(true) //optional
             ->setEncodeFormat('webp') //optional, encode every size: jpg, png, gif, webp, avif
             ->setEncodeQuality() //optional, use values between 0 and 100
-            ->save('resize'); //save option resize or crop, default is resize
+            ->save(ImageAction::Resize); //ImageAction::Resize (default) or ImageAction::Crop; 'resize'/'crop' strings work too
 ```
 
 **Optimize exist image**
@@ -180,9 +181,14 @@ ManipulationImage::load('image_name.jpg')
 ```
 
 
-> **resize**: Resize the image by the maximum width or height
+> **resize** (`ImageAction::Resize`): Resize the image by the maximum width or height
 > 
-> **crop**: Cut out by size part of the current image with given width and height
+> **crop** (`ImageAction::Crop`): Cut out by size part of the current image with given width and height
+>
+> Actions are the `Fynduck\FilesUpload\Enums\ImageAction` enum, so they can be validated
+> with `Rule::enum(ImageAction::class)`. A size can override the action:
+> `ImageSize::make(300, 300, action: ImageAction::Crop)`. An unknown action string throws
+> `InvalidArgumentException('Action does not exist.')`.
 
 ## Upgrading from 4.x
 

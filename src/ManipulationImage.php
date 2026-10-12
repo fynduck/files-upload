@@ -4,6 +4,7 @@ namespace Fynduck\FilesUpload;
 
 use Fynduck\FilesUpload\Data\ImageSize;
 use Fynduck\FilesUpload\Data\ManipulationOptions;
+use Fynduck\FilesUpload\Enums\ImageAction;
 use Fynduck\FilesUpload\Traits\CheckFile;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Interfaces\ImageInterface;
@@ -28,8 +29,6 @@ class ManipulationImage
     protected ?string $overwrite = null;
 
     protected string $folder;
-
-    protected array $actions = ['resize', 'crop'];
 
     protected string $disk = 'public';
 
@@ -205,11 +204,9 @@ class ManipulationImage
         return $this;
     }
 
-    public function save(string $action = 'resize'): void
+    public function save(ImageAction|string $action = ImageAction::Resize): void
     {
-        if (! in_array($action, $this->actions, true)) {
-            throw new InvalidArgumentException('Action does not exist.');
-        }
+        $action = ImageAction::resolve($action);
         if (! $this->sizes) {
             throw new InvalidArgumentException('Sizes is required.');
         }
@@ -229,7 +226,7 @@ class ManipulationImage
         }
     }
 
-    private function action(string $action): void
+    private function action(ImageAction $action): void
     {
         foreach ($this->sizes as $folderSize => $size) {
             if (! $size->hasDimensions()) {
@@ -240,12 +237,8 @@ class ManipulationImage
         }
     }
 
-    private function renderSize(string $folderSize, ImageSize $size, string $action): void
+    private function renderSize(string $folderSize, ImageSize $size, ImageAction $action): void
     {
-        if (! in_array($action, $this->actions, true)) {
-            throw new InvalidArgumentException('Action does not exist.');
-        }
-
         $this->deleteOld($folderSize);
 
         $image = $this->readImage();
@@ -253,8 +246,8 @@ class ManipulationImage
         $sourceHeight = $image->height();
 
         match ($action) {
-            'crop'   => $this->cropImage($image, $size->width, $size->height, $size->position),
-            'resize' => $this->scaleImage($image, $size->width, $size->height),
+            ImageAction::Crop   => $this->cropImage($image, $size->width, $size->height, $size->position),
+            ImageAction::Resize => $this->scaleImage($image, $size->width, $size->height),
         };
 
         $isResized = $image->width() !== $sourceWidth || $image->height() !== $sourceHeight;

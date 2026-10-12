@@ -4,6 +4,7 @@ namespace Fynduck\FilesUpload\Tests\Feature;
 
 use Fynduck\FilesUpload\Data\ImageSize;
 use Fynduck\FilesUpload\Data\ManipulationOptions;
+use Fynduck\FilesUpload\Enums\ImageAction;
 use Fynduck\FilesUpload\Events\ImageSizesGenerated;
 use Fynduck\FilesUpload\Jobs\GenerateImageSizesJob;
 use Fynduck\FilesUpload\Tests\TestCase;
@@ -49,7 +50,7 @@ class GenerateImageSizesJobTest extends TestCase
 
         (new GenerateImageSizesJob(
             sourcePath: 'src.jpg',
-            action: 'resize',
+            action: ImageAction::Resize,
             options: $options,
             sizes: ['xs' => ImageSize::make(50, 50)],
             dispatchEvent: true,

@@ -4,6 +4,7 @@ namespace Fynduck\FilesUpload;
 
 use Fynduck\FilesUpload\Data\ImageSize;
 use Fynduck\FilesUpload\Data\ManipulationOptions;
+use Fynduck\FilesUpload\Enums\ImageAction;
 use Fynduck\FilesUpload\Events\ImageSizesGenerated;
 use Fynduck\FilesUpload\Jobs\GenerateImageSizesJob;
 use Fynduck\FilesUpload\Traits\CheckFile;
@@ -232,8 +233,10 @@ class UploadFile
      * Raster images get sizes and may be re-encoded. Anything else (SVG, video, PDF…)
      * is stored as uploaded and its sizes are skipped.
      */
-    public function save(string $action = 'resize'): string
+    public function save(ImageAction|string $action = ImageAction::Resize): string
     {
+        $action = ImageAction::resolve($action);
+
         if (! isset($this->folder)) {
             $this->folder = '';
         }
@@ -338,7 +341,7 @@ class UploadFile
     /**
      * Render the requested sizes, either inline or via the queue.
      */
-    private function processSizes(string $action): void
+    private function processSizes(ImageAction $action): void
     {
         $options = $this->buildOptions();
         $sizes = $this->normalizedSizes();
@@ -359,7 +362,7 @@ class UploadFile
             ->save($action);
     }
 
-    private function dispatchSizes(string $action, ManipulationOptions $options, array $sizes): void
+    private function dispatchSizes(ImageAction $action, ManipulationOptions $options, array $sizes): void
     {
         $sourcePath = $this->getPathFile();
         $connection = $this->queueConnection ?? config('files-upload.queue.connection');

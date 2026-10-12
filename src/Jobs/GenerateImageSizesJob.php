@@ -4,6 +4,7 @@ namespace Fynduck\FilesUpload\Jobs;
 
 use Fynduck\FilesUpload\Data\ImageSize;
 use Fynduck\FilesUpload\Data\ManipulationOptions;
+use Fynduck\FilesUpload\Enums\ImageAction;
 use Fynduck\FilesUpload\Events\ImageSizesGenerated;
 use Fynduck\FilesUpload\ManipulationImage;
 use Illuminate\Bus\Batchable;
@@ -37,7 +38,7 @@ class GenerateImageSizesJob implements ShouldQueue
      */
     public function __construct(
         public readonly string $sourcePath,
-        public readonly string $action,
+        public readonly ImageAction|string $action,
         public readonly ManipulationOptions $options,
         public readonly array $sizes,
         public readonly bool $dispatchEvent = false,

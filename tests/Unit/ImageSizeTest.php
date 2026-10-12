@@ -3,6 +3,7 @@
 namespace Fynduck\FilesUpload\Tests\Unit;
 
 use Fynduck\FilesUpload\Data\ImageSize;
+use Fynduck\FilesUpload\Enums\ImageAction;
 use Fynduck\FilesUpload\Tests\TestCase;
 
 class ImageSizeTest extends TestCase
@@ -26,6 +27,20 @@ class ImageSizeTest extends TestCase
             $size->toArray(),
         );
         $this->assertEquals($size, ImageSize::fromArray($size->toArray()));
+    }
+
+    public function test_it_resolves_the_action_to_the_enum(): void
+    {
+        $this->assertSame(ImageAction::Crop, ImageSize::make(100, 100, action: 'crop')->action);
+        $this->assertSame(ImageAction::Resize, ImageSize::fromArray(['width' => 100, 'action' => ImageAction::Resize])->action);
+    }
+
+    public function test_it_rejects_an_unknown_action(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Action does not exist.');
+
+        ImageSize::make(100, 100, action: 'stretch');
     }
 
     public function test_it_reports_when_dimensions_are_missing(): void

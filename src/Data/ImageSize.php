@@ -2,26 +2,35 @@
 
 namespace Fynduck\FilesUpload\Data;
 
+use Fynduck\FilesUpload\Enums\ImageAction;
+
 /**
  * A single requested size variant.
  *
  * Replaces the loose ['width' => .., 'height' => .., 'position' => ..] arrays.
- * Holds only scalars so it serializes cleanly into a queued job.
+ * Holds only scalars and an enum so it serializes cleanly into a queued job.
  */
 class ImageSize
 {
+    /**
+     * Action for this size only; null uses the action passed to save().
+     */
+    public readonly ?ImageAction $action;
+
     public function __construct(
         public readonly ?int $width = null,
         public readonly ?int $height = null,
         public readonly string $position = 'center',
-        public readonly ?string $action = null,
-    ) {}
+        ImageAction|string|null $action = null,
+    ) {
+        $this->action = $action === null ? null : ImageAction::resolve($action);
+    }
 
     public static function make(
         ?int $width = null,
         ?int $height = null,
         string $position = 'center',
-        ?string $action = null,
+        ImageAction|string|null $action = null,
     ): self {
         return new self($width, $height, $position, $action);
     }
@@ -50,7 +59,7 @@ class ImageSize
             'width'    => $this->width,
             'height'   => $this->height,
             'position' => $this->position,
-            'action'   => $this->action,
+            'action'   => $this->action?->value,
         ];
     }
 }
