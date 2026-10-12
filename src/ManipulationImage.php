@@ -8,7 +8,6 @@ use Fynduck\FilesUpload\Traits\CheckFile;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\FileExtension;
 use Intervention\Image\Interfaces\ImageInterface;
-use Intervention\Image\Laravel\Facades\Image;
 use InvalidArgumentException;
 use RuntimeException;
 use Spatie\LaravelImageOptimizer\Facades\ImageOptimizer;
@@ -272,16 +271,29 @@ class ManipulationImage
         return Storage::disk($this->disk)->exists($path);
     }
 
+    /**
+     * Delete the size's file named by setOverwrite(), in whatever image extension it was
+     * stored with.
+     */
     private function deleteOld(string $folder): void
     {
-        if ($this->overwrite) {
-            Storage::disk($this->disk)->delete($this->getFolder($folder) . '/' . $this->overwrite);
+        if (! $this->overwrite) {
+            return;
         }
+
+        $sizeFolder = $this->getFolder($folder);
+        $oldBaseName = pathinfo($this->overwrite, PATHINFO_FILENAME);
+        $paths = [trim($sizeFolder . '/' . basename($this->overwrite), '/')];
+        foreach ($this->imageExtensions as $extension) {
+            $paths[] = trim("{$sizeFolder}/{$oldBaseName}.{$extension}", '/');
+        }
+
+        Storage::disk($this->disk)->delete(array_values(array_unique($paths)));
     }
 
     private function readImage(): ImageInterface
     {
-        return Image::read($this->sourcePath());
+        return $this->imageManager()->read($this->sourcePath());
     }
 
     private function sourcePath(): string

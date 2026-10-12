@@ -23,7 +23,7 @@ UploadFile::file($request->file('file')) //or $request->get('base64'), required
     ->setDisk('storage') //default is public
     ->setFolder('Post') //optional
     ->setName('image_name') //optional, default use file name or random in case base64
-    ->setOverwrite('old_name.jpg') //optional, remove file with old name
+    ->setOverwrite('old_name.jpg') //optional, after saving delete this old image and all its sizes
     ->setSizes(['xs' => ['width' => 100, 'height' => 100]]) //(optional) if need other sizes
     ->setBackground('#000000') //optional
     ->setBlur(0) //optional, use values between 0 and 100
@@ -83,7 +83,7 @@ ManipulationImage::load($pathImage)
             ->setFolder('Post')
             ->setSizes(['xs' => ['width' => 100, 'height' => 100]])
             ->setName('image_name.jpg') //name with extension
-            ->setOverwrite('old_name.jpg') //optional, remove file with old name
+            ->setOverwrite('old_name.jpg') //optional, remove this name from each size folder first
             ->setBackground('#000000') //optional
             ->setBlur(0) //optional, use values between 0 and 100
             ->setBrightness(0) //optional, use values between -100 and +100. brightness 0 for no change
