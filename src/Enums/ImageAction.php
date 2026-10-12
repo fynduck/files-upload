@@ -20,7 +20,12 @@ enum ImageAction: string
     case Crop = 'crop';
 
     /**
-     * The action itself, or the action named by a string ('resize', 'crop').
+     * Fit inside the exact width and height and fill the rest with the background colour.
+     */
+    case Pad = 'pad';
+
+    /**
+     * The action itself, or the action named by a string ('resize', 'crop', 'pad').
      */
     public static function resolve(self|string $action): self
     {

@@ -37,7 +37,7 @@ class ManipulationOptions
             $data['folder'] ?? '',
             $data['name'] ?? '',
             $data['overwrite'] ?? null,
-            $data['background'] ?? null,
+            self::normalizeBackground($data['background'] ?? null),
             self::normalizeBlur($data['blur'] ?? null),
             self::normalizeBrightness($data['brightness'] ?? null),
             (bool) ($data['greyscale'] ?? false),
@@ -92,6 +92,17 @@ class ManipulationOptions
     public function hasFocalPoint(): bool
     {
         return $this->focalX !== null && $this->focalY !== null;
+    }
+
+    /**
+     * A colour the image driver understands (#ffffff, ffffff, rgb(…), transparent…);
+     * blank means none.
+     */
+    public static function normalizeBackground(?string $background): ?string
+    {
+        $background = $background === null ? '' : trim($background);
+
+        return $background === '' ? null : $background;
     }
 
     public static function normalizeEncode(?string $encode): ?string

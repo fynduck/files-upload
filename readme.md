@@ -31,7 +31,7 @@ UploadFile::file($request->file('file')) //or $request->get('base64'), required
     ->setSizes(['xs' => ['width' => 100, 'height' => 100]]) //(optional) if need other sizes
     ->setFocalPoint(0.3, 0.4) //optional, crop sizes around this point (0-1 of width/height)
     ->setUpscale(false) //optional, never enlarge past the source (default true)
-    ->setBackground('#000000') //optional
+    ->setBackground('#000000') //optional, fills `pad` canvases and transparency when encoding to jpg
     ->setBlur(0) //optional, use values between 0 and 100
     ->setBrightness(0) //optional, use values between -100 and +100. brightness 0 for no change
     ->setGreyscale(true) //optional true or false default is false
@@ -160,14 +160,14 @@ ManipulationImage::load($pathImage)
             ->setName('image_name') //name without extension
             ->setOverwrite('old_name.jpg') //optional, remove this name from each size folder first
             ->setFocalPoint(0.5, 0.3) //optional
-            ->setBackground('#000000') //optional
+            ->setBackground('#000000') //optional, fills `pad` canvases and transparency when encoding to jpg
             ->setBlur(0) //optional, use values between 0 and 100
             ->setBrightness(0) //optional, use values between -100 and +100. brightness 0 for no change
             ->setGreyscale(true) //optional true or false default is true
             ->setOptimize(true) //optional
             ->setEncodeFormat('webp') //optional, encode every size: jpg, png, gif, webp, avif
             ->setEncodeQuality() //optional, use values between 0 and 100
-            ->save(ImageAction::Resize); //ImageAction::Resize (default) or ImageAction::Crop; 'resize'/'crop' strings work too
+            ->save(ImageAction::Resize); //ImageAction::Resize (default), Crop or Pad; 'resize'/'crop'/'pad' strings work too
 ```
 
 **Optimize exist image**
@@ -184,6 +184,10 @@ ManipulationImage::load('image_name.jpg')
 > **resize** (`ImageAction::Resize`): Resize the image by the maximum width or height
 > 
 > **crop** (`ImageAction::Crop`): Cut out by size part of the current image with given width and height
+>
+> **pad** (`ImageAction::Pad`): Fit the image inside the exact width and height and fill the rest
+> with the background colour (`setBackground`, white by default). Without upscaling a smaller
+> image stays at its size in the middle of the canvas.
 >
 > Actions are the `Fynduck\FilesUpload\Enums\ImageAction` enum, so they can be validated
 > with `Rule::enum(ImageAction::class)`. A size can override the action:

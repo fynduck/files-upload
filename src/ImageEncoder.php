@@ -14,14 +14,31 @@ use Intervention\Image\Interfaces\ImageInterface;
  */
 class ImageEncoder
 {
-    public static function encode(ImageInterface $image, string $extension, int $quality, bool $optimize): string
+    /**
+     * A background colour fills transparent areas when the format has no alpha (jpg).
+     * The driver keeps that colour in its shared config, so it is restored afterwards
+     * and never leaks into the next image.
+     */
+    public static function encode(ImageInterface $image, string $extension, int $quality, bool $optimize, ?string $background = null): string
     {
-        return (string) $image->encodeUsingFileExtension(
-            $extension,
-            quality: $quality,
-            progressive: $optimize,
-            strip: $optimize ?: null,
-        );
+        $previousBackground = $background === null ? null : $image->backgroundColor();
+
+        try {
+            if ($background !== null) {
+                $image->setBackgroundColor($background);
+            }
+
+            return (string) $image->encodeUsingFileExtension(
+                $extension,
+                quality: $quality,
+                progressive: $optimize,
+                strip: $optimize ?: null,
+            );
+        } finally {
+            if ($previousBackground !== null) {
+                $image->setBackgroundColor($previousBackground);
+            }
+        }
     }
 
     /**

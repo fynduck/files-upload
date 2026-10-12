@@ -135,9 +135,13 @@ class UploadFile
         return $this;
     }
 
-    public function setBackground(?string $bg): self
+    /**
+     * Colour that fills the padding of `pad` sizes and the transparent areas of images
+     * encoded to a format without alpha (jpg). Null keeps the driver default (white).
+     */
+    public function setBackground(?string $background): self
     {
-        $this->background = $bg;
+        $this->background = ManipulationOptions::normalizeBackground($background);
 
         return $this;
     }
@@ -323,7 +327,7 @@ class UploadFile
 
             $storage->put(
                 $this->getPathFile(),
-                ImageEncoder::encode($image, $this->encode, (int) $this->quality, (bool) $this->optimize),
+                ImageEncoder::encode($image, $this->encode, (int) $this->quality, (bool) $this->optimize, $this->background),
             );
 
             return;

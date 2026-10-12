@@ -133,9 +133,9 @@ class ManipulationImage
         return $this->setEncodeFormat($extension);
     }
 
-    public function setBackground(?string $bg): self
+    public function setBackground(?string $background): self
     {
-        $this->background = $bg;
+        $this->background = ManipulationOptions::normalizeBackground($background);
 
         return $this;
     }
@@ -248,6 +248,7 @@ class ManipulationImage
         match ($action) {
             ImageAction::Crop   => $this->cropImage($image, $size->width, $size->height, $size->position),
             ImageAction::Resize => $this->scaleImage($image, $size->width, $size->height),
+            ImageAction::Pad    => $this->padImage($image, $size->width, $size->height, $size->position),
         };
 
         $isResized = $image->width() !== $sourceWidth || $image->height() !== $sourceHeight;
@@ -263,6 +264,26 @@ class ManipulationImage
         } else {
             $image->cover($width, $height, $position);
         }
+    }
+
+    /**
+     * Fit the image inside width x height and fill the rest of that canvas with the
+     * background colour. Without upscaling a smaller source keeps its size on the canvas.
+     * With one side missing there is nothing to pad, so it is scaled.
+     */
+    private function padImage(ImageInterface $image, ?int $width, ?int $height, string $position): void
+    {
+        if (! $width || ! $height) {
+            $this->scaleImage($image, $width, $height);
+
+            return;
+        }
+
+        $background = $this->background ?? $image->backgroundColor();
+
+        $this->upscale
+            ? $image->contain($width, $height, $background, $position)
+            : $image->containDown($width, $height, $background, $position);
     }
 
     private function scaleImage(ImageInterface $image, ?int $width, ?int $height): void
@@ -376,7 +397,7 @@ class ManipulationImage
         }
 
         $relativePath = $this->getFolder($folderSize) . '/' . $this->fileName . '.' . $this->extension();
-        $bytes = ImageEncoder::encode($image, $this->extension(), (int) $this->quality, (bool) $this->optimize);
+        $bytes = ImageEncoder::encode($image, $this->extension(), (int) $this->quality, (bool) $this->optimize, $this->background);
 
         if ($this->optimize && ! $isResized && ! $hasEffects && $this->isSourceReusable($image)) {
             $bytes = ImageEncoder::smallest($bytes, (string) $this->sourceBytes);
