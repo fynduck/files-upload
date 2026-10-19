@@ -5,6 +5,7 @@ namespace Fynduck\FilesUpload;
 use Fynduck\FilesUpload\Data\ImageSize;
 use Fynduck\FilesUpload\Data\ManipulationOptions;
 use Fynduck\FilesUpload\Enums\ImageAction;
+use Fynduck\FilesUpload\Exceptions\NotEnoughMemoryException;
 use Fynduck\FilesUpload\Modifiers\Gd\BoxCoverModifier;
 use Fynduck\FilesUpload\Traits\CheckFile;
 use Illuminate\Support\Facades\Storage;
@@ -54,6 +55,12 @@ class ManipulationImage
     protected ?float $focalY = null;
 
     protected bool $upscale = true;
+
+    /**
+     * Bytes GD holds per source pixel at peak while cutting a size: the decoded source
+     * (4 bytes a pixel) plus the output canvas and PHP's overhead.
+     */
+    private const int GD_BYTES_PER_PIXEL = 5;
 
     /**
      * Source bytes, read once per save() and decoded for each size.
@@ -223,6 +230,7 @@ class ManipulationImage
         }
 
         try {
+            $this->ensureEnoughMemory();
             $this->action($action);
         } finally {
             $this->sourceBytes = null;
@@ -383,11 +391,44 @@ class ManipulationImage
 
     private function readImage(): ImageInterface
     {
-        $this->sourceBytes ??= $this->isAbsolutePath($this->pathImage)
+        return Image::decodeBinary($this->sourceBytes());
+    }
+
+    private function sourceBytes(): string
+    {
+        return $this->sourceBytes ??= $this->isAbsolutePath($this->pathImage)
             ? (string) file_get_contents($this->pathImage)
             : (string) Storage::disk($this->disk)->get(trim($this->pathImage, '/'));
+    }
 
-        return Image::decodeBinary($this->sourceBytes);
+    /**
+     * GD decodes the whole image into PHP memory, and running out of memory_limit is a
+     * fatal error that cannot be caught. Fail before decoding, saying why, when the
+     * image cannot fit in what is left. Imagick and vips allocate outside the limit.
+     *
+     * @throws NotEnoughMemoryException
+     */
+    private function ensureEnoughMemory(): void
+    {
+        $memoryLimit = (string) ini_get('memory_limit');
+        $limitBytes = ini_parse_quantity($memoryLimit);
+
+        if ($limitBytes <= 0 || Image::getFacadeRoot()->driver->id() !== 'GD') {
+            return;
+        }
+
+        $dimensions = getimagesizefromstring($this->sourceBytes());
+        if ($dimensions === false) {
+            return;
+        }
+
+        [$width, $height] = $dimensions;
+        $neededBytes = $width * $height * self::GD_BYTES_PER_PIXEL;
+        $freeBytes = $limitBytes - memory_get_usage();
+
+        if ($neededBytes > $freeBytes) {
+            throw NotEnoughMemoryException::forImage($width, $height, $neededBytes, $freeBytes, $memoryLimit);
+        }
     }
 
     private function sourceMimeType(): ?string
