@@ -2,11 +2,15 @@
 
 namespace Fynduck\FilesUpload\Tests\Feature;
 
+use Fynduck\FilesUpload\Modifiers\Gd\BoxCoverModifier;
 use Fynduck\FilesUpload\Tests\TestCase;
 use Fynduck\FilesUpload\UploadFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Geometry\Point;
+use Intervention\Image\Interfaces\ImageInterface;
 use Intervention\Image\Laravel\Facades\Image;
+use Intervention\Image\Size;
 
 class FocalPointCropTest extends TestCase
 {
@@ -54,6 +58,16 @@ class FocalPointCropTest extends TestCase
         $this->assertSame([200, 100], $this->dimensions('huge/small.png'));
     }
 
+    public function test_the_one_step_gd_cut_has_the_pixels_of_a_crop_then_resize(): void
+    {
+        $source = Image::decodePath($this->gradientImage());
+
+        $expected = (clone $source)->crop(240, 120, 35, 18)->resize(100, 50);
+        $actual = (clone $source)->modify(new BoxCoverModifier(100, 50, new Size(240, 120, new Point(35, 18))));
+
+        $this->assertSame($this->pixels($expected), $this->pixels($actual));
+    }
+
     private function uploadHalves(string $name, float $focalX): void
     {
         UploadFile::file($this->halvesImage())
@@ -77,6 +91,39 @@ class FocalPointCropTest extends TestCase
         imagepng($image, $path);
 
         return new UploadedFile($path, 'halves.png', 'image/png', null, true);
+    }
+
+    /**
+     * A 300×200 PNG whose every pixel differs, so any shift or resampling shows.
+     */
+    private function gradientImage(): string
+    {
+        $image = imagecreatetruecolor(300, 200);
+        for ($x = 0; $x < 300; $x++) {
+            for ($y = 0; $y < 200; $y++) {
+                imagesetpixel($image, $x, $y, imagecolorallocate($image, $x % 256, $y, ($x * $y) % 256));
+            }
+        }
+
+        $path = tempnam(sys_get_temp_dir(), 'gradient') . '.png';
+        imagepng($image, $path);
+
+        return $path;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function pixels(ImageInterface $image): array
+    {
+        $pixels = [];
+        for ($y = 0; $y < $image->height(); $y++) {
+            for ($x = 0; $x < $image->width(); $x++) {
+                $pixels[] = $image->colorAt($x, $y)->toHex();
+            }
+        }
+
+        return $pixels;
     }
 
     private function colorAtCentre(string $path): string

@@ -5,10 +5,13 @@ namespace Fynduck\FilesUpload;
 use Fynduck\FilesUpload\Data\ImageSize;
 use Fynduck\FilesUpload\Data\ManipulationOptions;
 use Fynduck\FilesUpload\Enums\ImageAction;
+use Fynduck\FilesUpload\Modifiers\Gd\BoxCoverModifier;
 use Fynduck\FilesUpload\Traits\CheckFile;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Geometry\Point;
 use Intervention\Image\Interfaces\ImageInterface;
 use Intervention\Image\Laravel\Facades\Image;
+use Intervention\Image\Size;
 use InvalidArgumentException;
 use RuntimeException;
 use Spatie\LaravelImageOptimizer\Facades\ImageOptimizer;
@@ -293,7 +296,7 @@ class ManipulationImage
 
     /**
      * Cut the largest area of the target ratio centred on the focal point (centre when
-     * none is set), kept inside the image, then resize it to the target size. Without
+     * none is set), kept inside the image, and resize it to the target size. Without
      * upscaling a source smaller than the target keeps the crop's own size.
      */
     private function cropAroundFocalPoint(ImageInterface $image, int $width, int $height): void
@@ -313,9 +316,28 @@ class ManipulationImage
         $offsetX = $this->cropOffset($this->focalX ?? 0.5, $sourceWidth, $cropWidth);
         $offsetY = $this->cropOffset($this->focalY ?? 0.5, $sourceHeight, $cropHeight);
 
-        $image->crop($cropWidth, $cropHeight, $offsetX, $offsetY);
+        $box = new Size($cropWidth, $cropHeight, new Point($offsetX, $offsetY));
+        $isScaled = $this->upscale || $cropWidth > $width;
 
-        if ($this->upscale || $cropWidth > $width) {
+        $this->coverBox($image, $box, $isScaled ? $width : $cropWidth, $isScaled ? $height : $cropHeight);
+    }
+
+    /**
+     * Cut the box and bring it to width x height. GD does it in one resampling step,
+     * so no full-resolution crop is held next to the source within PHP's memory
+     * limit; Imagick and vips allocate outside that limit and crop, then resize.
+     */
+    private function coverBox(ImageInterface $image, Size $box, int $width, int $height): void
+    {
+        if ($image->driver()->id() === 'GD') {
+            $image->modify(new BoxCoverModifier($width, $height, $box));
+
+            return;
+        }
+
+        $image->crop($box->width(), $box->height(), $box->pivot()->x(), $box->pivot()->y());
+
+        if ($image->width() !== $width || $image->height() !== $height) {
             $image->resize($width, $height);
         }
     }
