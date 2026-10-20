@@ -2,11 +2,19 @@
 
 namespace Fynduck\FilesUpload\Tests\Feature;
 
+use Fynduck\FilesUpload\Exceptions\NotEnoughMemoryException;
+use Fynduck\FilesUpload\ManipulationImage;
+use Fynduck\FilesUpload\Modifiers\Gd\BoxCoverModifier;
 use Fynduck\FilesUpload\Tests\TestCase;
 use Fynduck\FilesUpload\UploadFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\Geometry\Point;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Interfaces\ImageInterface;
 use Intervention\Image\Laravel\Facades\Image;
+use Intervention\Image\Size;
 
 class FocalPointCropTest extends TestCase
 {
@@ -54,6 +62,44 @@ class FocalPointCropTest extends TestCase
         $this->assertSame([200, 100], $this->dimensions('huge/small.png'));
     }
 
+    public function test_the_one_step_gd_cut_has_the_pixels_of_a_crop_then_resize(): void
+    {
+        $source = ImageManager::usingDriver(GdDriver::class)->decodePath($this->gradientImage());
+
+        $expected = (clone $source)->crop(240, 120, 35, 18)->resize(100, 50);
+        $actual = (clone $source)->modify(new BoxCoverModifier(100, 50, new Size(240, 120, new Point(35, 18))));
+
+        $this->assertSame($this->pixels($expected), $this->pixels($actual));
+    }
+
+    public function test_gd_refuses_an_image_that_cannot_fit_in_the_memory_limit_before_decoding_it(): void
+    {
+        if (Image::getFacadeRoot()->driver->id() !== 'GD') {
+            $this->markTestSkipped('Only GD decodes within the memory limit.');
+        }
+
+        $image = imagecreatetruecolor(3000, 3000);
+        $path = tempnam(sys_get_temp_dir(), 'large') . '.png';
+        imagepng($image, $path);
+        imagedestroy($image);
+
+        $memoryLimit = ini_get('memory_limit');
+        ini_set('memory_limit', (string) (memory_get_usage() + 20 * 1048576));
+
+        try {
+            $this->expectException(NotEnoughMemoryException::class);
+            $this->expectExceptionMessageMatches('/^Decoding the 3000x3000 image with GD needs about 43 MB, but only \d+ MB of the \d+ memory_limit is free\./');
+
+            ManipulationImage::load($path)
+                ->setFolder('large')
+                ->setName('large')
+                ->setSizes(['sm' => ['width' => 100, 'height' => 100]])
+                ->save('crop');
+        } finally {
+            ini_set('memory_limit', $memoryLimit);
+        }
+    }
+
     private function uploadHalves(string $name, float $focalX): void
     {
         UploadFile::file($this->halvesImage())
@@ -77,6 +123,39 @@ class FocalPointCropTest extends TestCase
         imagepng($image, $path);
 
         return new UploadedFile($path, 'halves.png', 'image/png', null, true);
+    }
+
+    /**
+     * A 300×200 PNG whose every pixel differs, so any shift or resampling shows.
+     */
+    private function gradientImage(): string
+    {
+        $image = imagecreatetruecolor(300, 200);
+        for ($x = 0; $x < 300; $x++) {
+            for ($y = 0; $y < 200; $y++) {
+                imagesetpixel($image, $x, $y, imagecolorallocate($image, $x % 256, $y, ($x * $y) % 256));
+            }
+        }
+
+        $path = tempnam(sys_get_temp_dir(), 'gradient') . '.png';
+        imagepng($image, $path);
+
+        return $path;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function pixels(ImageInterface $image): array
+    {
+        $pixels = [];
+        for ($y = 0; $y < $image->height(); $y++) {
+            for ($x = 0; $x < $image->width(); $x++) {
+                $pixels[] = $image->colorAt($x, $y)->toHex();
+            }
+        }
+
+        return $pixels;
     }
 
     private function colorAtCentre(string $path): string

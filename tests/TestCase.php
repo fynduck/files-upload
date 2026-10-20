@@ -29,6 +29,11 @@ class TestCase extends Orchestra
             'throw'  => false,
         ]);
 
-        $app['config']->set('intervention-image.driver', \Intervention\Image\Drivers\Gd\Driver::class);
+        // IMAGE_DRIVER=imagick|vips runs the suite on another driver (GD by default).
+        $app['config']->set('intervention-image.driver', match (getenv('IMAGE_DRIVER') ?: 'gd') {
+            'imagick' => \Intervention\Image\Drivers\Imagick\Driver::class,
+            'vips'    => \Intervention\Image\Drivers\Vips\Driver::class,
+            default   => \Intervention\Image\Drivers\Gd\Driver::class,
+        });
     }
 }
