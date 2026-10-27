@@ -78,13 +78,10 @@ class FocalPointCropTest extends TestCase
             $this->markTestSkipped('Only GD decodes within the memory limit.');
         }
 
-        $image = imagecreatetruecolor(3000, 3000);
-        $path = tempnam(sys_get_temp_dir(), 'large') . '.png';
-        imagepng($image, $path);
-        imagedestroy($image);
+        $path = $this->blankImage(3000, 3000);
 
         $memoryLimit = ini_get('memory_limit');
-        ini_set('memory_limit', (string) (memory_get_usage() + 20 * 1048576));
+        ini_set('memory_limit', (string) (memory_get_usage(true) + 20 * 1048576));
 
         try {
             $this->expectException(NotEnoughMemoryException::class);
@@ -100,6 +97,42 @@ class FocalPointCropTest extends TestCase
         }
     }
 
+    public function test_gd_counts_the_free_memory_from_the_heap_php_has_reserved(): void
+    {
+        if (Image::getFacadeRoot()->driver->id() !== 'GD') {
+            $this->markTestSkipped('Only GD decodes within the memory limit.');
+        }
+
+        $path = $this->blankImage(2000, 2000);
+
+        // A long-running worker's heap: freed blocks stay reserved around the
+        // few that are still in use, far above what memory_get_usage() reports.
+        $strings = [];
+        for ($index = 0; $index < 300000; $index++) {
+            $strings[] = str_repeat('x', 100);
+        }
+        $pinned = array_filter($strings, static fn (int $index): bool => $index % 200 === 0, ARRAY_FILTER_USE_KEY);
+        $strings = null;
+        $this->assertGreaterThan(30 * 1048576, memory_get_usage(true) - memory_get_usage());
+
+        $memoryLimit = ini_get('memory_limit');
+        ini_set('memory_limit', (string) (memory_get_usage(true) + 8 * 1048576));
+
+        try {
+            $this->expectException(NotEnoughMemoryException::class);
+            $this->expectExceptionMessageMatches('/^Decoding the 2000x2000 image with GD needs about 20 MB, but only [78] MB of the \d+ memory_limit is free\./');
+
+            ManipulationImage::load($path)
+                ->setFolder('large')
+                ->setName('large')
+                ->setSizes(['sm' => ['width' => 100, 'height' => 100]])
+                ->save('crop');
+        } finally {
+            ini_set('memory_limit', $memoryLimit);
+            unset($pinned);
+        }
+    }
+
     private function uploadHalves(string $name, float $focalX): void
     {
         UploadFile::file($this->halvesImage())
@@ -108,6 +141,19 @@ class FocalPointCropTest extends TestCase
             ->setFocalPoint($focalX, 0.5)
             ->setOptimize(false)
             ->save('crop');
+    }
+
+    /**
+     * A black PNG of the given size, as a path.
+     */
+    private function blankImage(int $width, int $height): string
+    {
+        $image = imagecreatetruecolor($width, $height);
+        $path = tempnam(sys_get_temp_dir(), 'large') . '.png';
+        imagepng($image, $path);
+        imagedestroy($image);
+
+        return $path;
     }
 
     /**
