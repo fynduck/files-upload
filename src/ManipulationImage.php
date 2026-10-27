@@ -405,6 +405,8 @@ class ManipulationImage
      * GD decodes the whole image into PHP memory, and running out of memory_limit is a
      * fatal error that cannot be caught. Fail before decoding, saying why, when the
      * image cannot fit in what is left. Imagick and vips allocate outside the limit.
+     * PHP measures the limit against the heap it has reserved, which a long-running
+     * worker leaves well above memory_get_usage(), so what is left counts from that.
      *
      * @throws NotEnoughMemoryException
      */
@@ -424,7 +426,7 @@ class ManipulationImage
 
         [$width, $height] = $dimensions;
         $neededBytes = $width * $height * self::GD_BYTES_PER_PIXEL;
-        $freeBytes = $limitBytes - memory_get_usage();
+        $freeBytes = $limitBytes - memory_get_usage(true);
 
         if ($neededBytes > $freeBytes) {
             throw NotEnoughMemoryException::forImage($width, $height, $neededBytes, $freeBytes, $memoryLimit);
